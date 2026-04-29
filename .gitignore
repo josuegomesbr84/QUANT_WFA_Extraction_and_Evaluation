@@ -1,0 +1,40 @@
+# Credenciais — NUNCA versionar
+.env
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Playwright
+playwright/.local-chromium/
+
+# Arquivos temporários de upload
+tmp/
+
+# Resultados gerados (relatórios e JSONs de saída)
+resultados/
+
+# Debug dumps
+*.json
+!output/templates/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude (configurações locais da sessão)
+.claude/
+
+# Windows
+Thumbs.db
+desktop.ini

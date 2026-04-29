@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório WFA — {{ arquivo_wfa }}</title>
+<style>
+  :root {
+    --verde: #1a9e5c; --verde-claro: #d4f5e2; --verde-borda: #a3e6c0;
+    --amarelo: #d4920a; --amarelo-claro: #fff3cd; --amarelo-borda: #ffc107;
+    --vermelho: #c0392b; --vermelho-claro: #fde8e6; --vermelho-borda: #e74c3c;
+    --cinza: #6c757d; --cinza-claro: #f8f9fa; --borda: #dee2e6;
+    --fonte: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--fonte); background: #f0f2f5; color: #212529; font-size: 14px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* Header */
+  .header { background: #1a1f2e; color: #fff; border-radius: 10px; padding: 24px 28px; margin-bottom: 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: .3px; }
+  .header .meta { font-size: 12px; color: #adb5bd; margin-top: 6px; }
+
+  /* Veredicto Global */
+  .veredicto-global { border-radius: 10px; padding: 20px 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; }
+  .veredicto-global.APROVADO { background: var(--verde-claro); border: 2px solid var(--verde-borda); }
+  .veredicto-global.ATENCAO  { background: var(--amarelo-claro); border: 2px solid var(--amarelo-borda); }
+  .veredicto-global.REPROVADO{ background: var(--vermelho-claro); border: 2px solid var(--vermelho-borda); }
+  .veredicto-global .badge-g { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
+  .veredicto-global.APROVADO .badge-g  { color: var(--verde); }
+  .veredicto-global.ATENCAO  .badge-g  { color: var(--amarelo); }
+  .veredicto-global.REPROVADO .badge-g { color: var(--vermelho); }
+  .veredicto-global .sub { font-size: 13px; color: #495057; }
+
+  /* Seções */
+  .section { background: #fff; border-radius: 10px; border: 1px solid var(--borda); margin-bottom: 20px; overflow: hidden; }
+  .section-header { background: var(--cinza-claro); padding: 12px 20px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--borda); text-transform: uppercase; letter-spacing: .5px; color: #495057; }
+  .section-body { padding: 0; }
+
+  /* Tabela */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #1a1f2e; color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  tbody tr:nth-child(even) { background: #f8f9fa; }
+  tbody tr:hover { background: #e9ecef; }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+
+  /* Badge de veredicto */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .4px; }
+  .badge.APROVADO  { background: var(--verde-claro);  color: var(--verde);   border: 1px solid var(--verde-borda); }
+  .badge.ATENCAO   { background: var(--amarelo-claro); color: var(--amarelo); border: 1px solid var(--amarelo-borda); }
+  .badge.REPROVADO { background: var(--vermelho-claro);color: var(--vermelho);border: 1px solid var(--vermelho-borda); }
+
+  /* Score bar */
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .score-bar .bar { flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+  .score-bar .fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .score-bar .fill.APROVADO  { background: var(--verde); }
+  .score-bar .fill.ATENCAO   { background: var(--amarelo); }
+  .score-bar .fill.REPROVADO { background: var(--vermelho); }
+  .score-label { font-size: 12px; font-weight: 700; min-width: 55px; text-align: right; }
+
+  /* Cards de pontuação por cenário */
+  .scenario-row { border-bottom: 1px solid var(--borda); }
+  .scenario-summary { display: flex; align-items: center; gap: 16px; padding: 12px 20px; cursor: pointer; user-select: none; }
+  .scenario-summary:hover { background: #f8f9fa; }
+  .scenario-summary .label { font-weight: 600; flex: 1; font-size: 13px; }
+  .scenario-detail { padding: 16px 20px; background: #fafbfc; border-top: 1px solid var(--borda); display: none; }
+  .scenario-row.open .scenario-detail { display: block; }
+
+  /* Grade de scores individuais */
+  .scores-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+  .score-item { background: #fff; border: 1px solid var(--borda); border-radius: 8px; padding: 10px 14px; }
+  .score-item .score-name { font-size: 11px; color: var(--cinza); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+  .score-item .score-val  { font-size: 18px; font-weight: 700; }
+  .score-item .score-max  { font-size: 11px; color: var(--cinza); }
+
+  /* Tabela WFA interna */
+  .inner-table { font-size: 12px; }
+  .inner-table thead th { font-size: 10px; padding: 7px 10px; }
+  .inner-table tbody td { padding: 6px 10px; }
+  .neg { color: var(--vermelho); font-weight: 600; }
+  .pos { color: var(--verde); font-weight: 600; }
+
+  /* Métricas resumidas */
+  .metrics-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .metric-chip { background: #fff; border: 1px solid var(--borda); border-radius: 6px; padding: 6px 12px; font-size: 12px; }
+  .metric-chip strong { display: block; font-size: 15px; }
+
+  /* Toggle arrow */
+  .arrow { font-size: 10px; color: var(--cinza); transition: transform .2s; }
+  .scenario-row.open .arrow { transform: rotate(180deg); }
+
+  footer { text-align: center; font-size: 11px; color: var(--cinza); margin-top: 24px; padding-bottom: 24px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Relatório Walk Forward Analysis</h1>
+    <div class="meta">Arquivo: <strong>{{ arquivo_wfa }}</strong> &nbsp;|&nbsp; Gerado em: {{ now }}</div>
+  </div>
+
+  <!-- Veredicto Global -->
+  {% set vg_class = "ATENCAO" if veredicto_global == "ATENÇÃO" else veredicto_global %}
+  <div class="veredicto-global {{ vg_class }}">
+    <div>
+      <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Veredicto Global</div>
+      <div class="badge-g">{{ veredicto_global }}</div>
+    </div>
+    <div class="sub">
+      {% set aprovados  = cenarios | selectattr("veredicto.veredicto", "equalto", "APROVADO")  | list | length %}
+      {% set atencao    = cenarios | selectattr("veredicto.veredicto", "equalto", "ATENÇÃO")   | list | length %}
+      {% set reprovados = cenarios | selectattr("veredicto.veredicto", "equalto", "REPROVADO") | list | length %}
+      <strong>{{ cenarios | length }} cenários avaliados</strong><br>
+      ✅ {{ aprovados }} Aprovados &nbsp;|&nbsp; ⚠️ {{ atencao }} Atenção &nbsp;|&nbsp; ❌ {{ reprovados }} Reprovados
+    </div>
+  </div>
+
+  <!-- Walk Forward Matrix -->
+  <div class="section">
+    <div class="section-header">Walk Forward Matrix — 12 Cenários</div>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr>
+            <th>Steps</th>
+            <th>In Sample</th>
+            <th>Out of Sample</th>
+            <th>Significância</th>
+            <th>WFE (%)</th>
+            <th>Pontuação</th>
+            <th>Veredicto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cenarios %}
+          {% set vc = c.veredicto.veredicto %}
+          {% set vc_class = "ATENCAO" if vc == "ATENÇÃO" else vc %}
+          <tr>
+            <td>{{ c.label }}</td>
+            {% if wfm[loop.index0] is defined %}
+            <td>{{ wfm[loop.index0].in_sample }}</td>
+            <td>{{ wfm[loop.index0].out_of_sample }}</td>
+            <td>{{ wfm[loop.index0].significancia }}</td>
+            <td>{{ wfm[loop.index0].wfe }}</td>
+            {% else %}
+            <td colspan="4" style="color:#aaa">—</td>
+            {% endif %}
+            <td>
+              <div class="score-bar">
+                <div class="bar"><div class="fill {{ vc_class }}" style="width:{{ c.veredicto.total }}%"></div></div>
+                <span class="score-label">{{ c.veredicto.total }}/100</span>
+              </div>
+            </td>
+            <td><span class="badge {{ vc_class }}">{{ vc }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Detalhe por Cenário -->
+  <div class="section">
+    <div class="section-header">Detalhe por Cenário (clique para expandir)</div>
+    <div class="section-body">
+      {% for c in cenarios %}
+      {% set vc = c.veredicto.veredicto %}
+      {% set vc_class = "ATENCAO" if vc == "ATENÇÃO" else vc %}
+      <div class="scenario-row" id="row-{{ loop.index0 }}">
+        <div class="scenario-summary" onclick="toggle({{ loop.index0 }})">
+          <span class="label">{{ c.label }}</span>
+          <span class="badge {{ vc_class }}">{{ vc }}</span>
+          <span style="font-size:12px;color:#6c757d;margin-left:4px">{{ c.veredicto.total }}/100 pts</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="scenario-detail">
+
+          <!-- Métricas resumidas -->
+          <div class="metrics-row">
+            <div class="metric-chip">
+              <strong>{{ c.metrics.zscore }}</strong>
+              Z-Score
+            </div>
+            <div class="metric-chip">
+              <strong>{{ c.metrics.wfe_medio | fmt_pct }}</strong>
+              WFE Médio
+            </div>
+            <div class="metric-chip">
+              <strong>{{ c.metrics.wfe_sem_outliers | fmt_pct }}</strong>
+              WFE s/ Outliers
+            </div>
+            <div class="metric-chip">
+              <strong>{{ c.metrics.pct_steps_positivos | fmt_pct }}</strong>
+              Steps Positivos
+            </div>
+            <div class="metric-chip">
+              <strong>{{ c.metrics.consecutivos_negativos.max_consecutivos }}</strong>
+              Máx. Consecutivos Neg.
+            </div>
+            <div class="metric-chip">
+              <strong>{{ (c.metrics.representatividade.max_representatividade * 100) | round(1) }}%</strong>
+              Máx. Representatividade
+            </div>
+          </div>
+
+          <!-- Scores por critério -->
+          <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Pontuação por Critério</div>
+          <div class="scores-grid">
+            <div class="score-item">
+              <div class="score-name">Representatividade</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.representatividade >= 16 %}var(--verde){% elif c.veredicto.scores.representatividade >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.representatividade }}
+              </div>
+              <div class="score-max">/ 20 pts</div>
+            </div>
+            <div class="score-item">
+              <div class="score-name">Consecutivos Negativos</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.consecutivos_negativos >= 16 %}var(--verde){% elif c.veredicto.scores.consecutivos_negativos >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.consecutivos_negativos }}
+              </div>
+              <div class="score-max">/ 20 pts</div>
+            </div>
+            <div class="score-item">
+              <div class="score-name">% Steps WFE Positivo</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.pct_steps_positivos >= 16 %}var(--verde){% elif c.veredicto.scores.pct_steps_positivos >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.pct_steps_positivos }}
+              </div>
+              <div class="score-max">/ 20 pts</div>
+            </div>
+            <div class="score-item">
+              <div class="score-name">Z-Score</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.zscore >= 12 %}var(--verde){% elif c.veredicto.scores.zscore >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.zscore }}
+              </div>
+              <div class="score-max">/ 15 pts</div>
+            </div>
+            <div class="score-item">
+              <div class="score-name">WFE Médio</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_medio >= 10 %}var(--verde){% elif c.veredicto.scores.wfe_medio >= 5 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.wfe_medio }}
+              </div>
+              <div class="score-max">/ 13 pts</div>
+            </div>
+            <div class="score-item">
+              <div class="score-name">WFE s/ Outliers</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_sem_outliers >= 9 %}var(--verde){% elif c.veredicto.scores.wfe_sem_outliers >= 5 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.wfe_sem_outliers }}
+              </div>
+              <div class="score-max">/ 12 pts</div>
+            </div>
+          </div>
+
+          <!-- Tabela WFA do cenário -->
+          {% if c.tabela_wfa %}
+          <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.4px;margin: 16px 0 8px;">Tabela WFA — {{ c.tabela_wfa | length }} Steps</div>
+          <div style="overflow-x:auto">
+          <table class="inner-table">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>In Sample</th>
+                <th>Out of Sample</th>
+                <th>WFE (%)</th>
+                <th>Op. IS</th>
+                <th>Op. OOS</th>
+                <th>Parâmetros</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in c.tabela_wfa %}
+              <tr>
+                <td>{{ row.step }}</td>
+                <td>{{ row.in_sample }}</td>
+                <td class="{% if '-' in row.out_of_sample %}neg{% else %}pos{% endif %}">{{ row.out_of_sample }}</td>
+                <td class="{% if row.wfe and '-' in row.wfe %}neg{% else %}pos{% endif %}">{{ row.wfe }}</td>
+                <td>{{ row.operacoes_is }}</td>
+                <td>{{ row.operacoes_oos }}</td>
+                <td style="font-size:11px;color:#495057">{{ row.parametros }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <footer>Relatório gerado automaticamente pela solução de extração WFA &nbsp;|&nbsp; {{ now }}</footer>
+</div>
+
+<script>
+  function toggle(idx) {
+    var row = document.getElementById('row-' + idx);
+    row.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WFA Extractor — BotSpot</title>
+<style>
+  /* ─── Variáveis Light (padrão) ────────────────────────────────────────────── */
+  :root {
+    --verde: #1a9e5c; --verde-c: #d4f5e2; --verde-b: #a3e6c0;
+    --amarelo: #d4920a; --amarelo-c: #fff3cd; --amarelo-b: #ffc107;
+    --vermelho: #c0392b; --vermelho-c: #fde8e6; --vermelho-b: #e74c3c;
+    --azul: #2563eb; --azul-c: #dbeafe; --azul-b: #93c5fd;
+    --cinza: #6c757d; --borda: #dee2e6; --bg: #f0f2f5;
+    --dark: #1a1f2e; --fonte: 'Segoe UI', system-ui, sans-serif;
+    --card-bg: #fff;
+    --card-head-bg: var(--dark);
+    --body-color: #212529;
+    --input-bg: #fff;
+    --input-color: #212529;
+    --log-bg: #0d1117;
+    --log-color: #c9d1d9;
+    --dz-bg: #fafbfc;
+    --row-even: #f8f9fa;
+    --row-hover: #e9ecef;
+    --detail-bg: #fafbfc;
+    --chip-bg: #fff;
+    --sb-bg: #fff;
+    --outline-btn-bg: #fff;
+    --outline-btn-color: var(--dark);
+    --progress-track: #e9ecef;
+    --sc-item-bg: #fff;
+    --hdr-color: var(--dark);
+    --crit-label-color: #495057;
+    --crit-fixed-color: var(--cinza);
+  }
+
+  /* ─── Variáveis Dark ─────────────────────────────────────────────────────── */
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --borda: #30363d;
+    --cinza: #8b949e;
+    --card-bg: #161b22;
+    --card-head-bg: #010409;
+    --body-color: #e6edf3;
+    --input-bg: #0d1117;
+    --input-color: #e6edf3;
+    --log-bg: #010409;
+    --log-color: #c9d1d9;
+    --dz-bg: #161b22;
+    --row-even: #1c2128;
+    --row-hover: #21262d;
+    --detail-bg: #161b22;
+    --chip-bg: #1c2128;
+    --sb-bg: #1c2128;
+    --outline-btn-bg: #161b22;
+    --outline-btn-color: #e6edf3;
+    --progress-track: #21262d;
+    --sc-item-bg: #161b22;
+    --hdr-color: #e6edf3;
+    --crit-label-color: #c9d1d9;
+    --crit-fixed-color: #8b949e;
+    --dark: #e6edf3; /* inverte o dark (usado em títulos e botão run) */
+    --verde-c: #12341f; --verde-b: #196136;
+    --amarelo-c: #2d2006; --amarelo-b: #7a5000;
+    --vermelho-c: #2c0b0b; --vermelho-b: #7a1a1a;
+    --azul-c: #0c1a3a; --azul-b: #1a4db0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--fonte); background: var(--bg); color: var(--body-color); font-size: 14px; min-height: 100vh; transition: background .2s, color .2s; }
+
+  /* ─── Botão de tema ──────────────────────────────────────────────────────── */
+  #theme-btn {
+    position: fixed; top: 14px; right: 16px; z-index: 1000;
+    background: var(--card-bg); border: 1px solid var(--borda);
+    border-radius: 50%; width: 40px; height: 40px;
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15); transition: background .2s, border-color .2s;
+  }
+  #theme-btn:hover { opacity: .85; }
+
+  /* ─── Layout ─────────────────────────────────────────────────────────────── */
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
+
+  /* ─── Header ─────────────────────────────────────────────────────────────── */
+  .hdr { text-align: center; margin-bottom: 36px; }
+  .hdr h1 { font-size: 26px; font-weight: 800; color: var(--hdr-color); letter-spacing: -.3px; }
+  .hdr p  { color: var(--cinza); font-size: 14px; margin-top: 6px; }
+
+  /* ─── Card base ──────────────────────────────────────────────────────────── */
+  .card { background: var(--card-bg); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; margin-bottom: 20px; transition: background .2s, border-color .2s; }
+  .card-head { background: var(--card-head-bg); color: #fff; padding: 14px 20px; font-weight: 600; font-size: 13px; letter-spacing: .3px; display: flex; align-items: center; gap: 8px; }
+  [data-theme="dark"] .card-head { color: #e6edf3; }
+  .card-body { padding: 20px; }
+
+  /* ─── Dropzone ───────────────────────────────────────────────────────────── */
+  .dropzone { border: 2px dashed var(--borda); border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--dz-bg); position: relative; }
+  .dropzone:hover, .dropzone.over { border-color: var(--azul); background: var(--azul-c); }
+  .dropzone.has-file { border-color: var(--verde); background: var(--verde-c); }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .dz-icon { font-size: 36px; margin-bottom: 8px; }
+  .dz-text { font-size: 15px; font-weight: 600; color: var(--crit-label-color); }
+  .dz-sub  { font-size: 12px; color: var(--cinza); margin-top: 4px; }
+  .dz-filename { font-size: 13px; font-weight: 700; color: var(--verde); margin-top: 8px; }
+
+  /* ─── Credenciais toggle ─────────────────────────────────────────────────── */
+  .cred-toggle { background: none; border: none; color: var(--azul); font-size: 13px; cursor: pointer; padding: 0; text-decoration: underline; margin-bottom: 12px; }
+  .cred-fields { display: none; }
+  .cred-fields.open { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group label { font-size: 12px; font-weight: 600; color: var(--crit-label-color); }
+  .field-group input { border: 1px solid var(--borda); border-radius: 8px; padding: 9px 12px; font-size: 13px; outline: none; transition: border-color .15s; background: var(--input-bg); color: var(--input-color); }
+  .field-group input:focus { border-color: var(--azul); }
+  .hint { font-size: 11px; color: var(--cinza); margin-top: 8px; }
+
+  /* ─── Critérios editáveis ────────────────────────────────────────────────── */
+  .crit-panel { margin-top: 16px; border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
+  .crit-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px; background: var(--row-even); cursor: pointer;
+    font-size: 13px; font-weight: 600; color: var(--crit-label-color);
+    user-select: none; transition: background .15s;
+    border-bottom: 1px solid var(--borda);
+  }
+  .crit-panel-header:hover { background: var(--row-hover); }
+  .crit-panel-body { display: none; padding: 16px; }
+  .crit-panel-body.open { display: block; }
+  .crit-chevron { font-size: 10px; transition: transform .2s; color: var(--cinza); }
+  .crit-panel-header.open .crit-chevron { transform: rotate(180deg); }
+
+  .crit-section { margin-bottom: 18px; }
+  .crit-section:last-child { margin-bottom: 0; }
+  .crit-section-title { font-size: 11px; font-weight: 700; color: var(--cinza); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+  .crit-max { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .crit-num {
+    width: 62px; border: 1px solid var(--borda); border-radius: 6px;
+    padding: 4px 6px; font-size: 13px; text-align: center;
+    background: var(--input-bg); color: var(--input-color);
+    outline: none; transition: border-color .15s;
+  }
+  .crit-num:focus { border-color: var(--azul); }
+
+  /* Thresholds */
+  .crit-thresh-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--crit-label-color); }
+  .crit-thresh-row strong { font-weight: 700; }
+
+  /* Faixas simples (representatividade, consecutivos) */
+  .crit-faixas { display: flex; flex-direction: column; gap: 6px; }
+  .crit-faixa { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--crit-label-color); }
+  .crit-faixa .faixa-label { flex: 1; }
+  .crit-fixed { font-size: 12px; color: var(--crit-fixed-color); }
+
+  /* Grid 2x2 para critérios com faixas numéricas */
+  .crit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
+  .crit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .crit-table th { font-size: 10px; font-weight: 600; color: var(--cinza); text-transform: uppercase; letter-spacing: .3px; padding: 0 4px 5px; text-align: left; border-bottom: 1px solid var(--borda); }
+  .crit-table td { padding: 3px 4px; }
+  .crit-table .crit-num { width: 56px; }
+  .crit-table .crit-fixed-cell { font-size: 11px; color: var(--crit-fixed-color); padding: 4px 6px; }
+
+  /* ─── Botão principal ────────────────────────────────────────────────────── */
+  .btn-run { width: 100%; background: #1a1f2e; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .2s; margin-top: 4px; letter-spacing: .3px; }
+  [data-theme="dark"] .btn-run { background: #e6edf3; color: #0d1117; }
+  .btn-run:hover:not(:disabled) { opacity: .88; }
+  .btn-run:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ─── Progress area ──────────────────────────────────────────────────────── */
+  #section-progress { display: none; }
+
+  .progress-bar-wrap { background: var(--progress-track); border-radius: 8px; height: 10px; overflow: hidden; margin-bottom: 4px; }
+  .progress-bar-fill { height: 100%; background: var(--azul); border-radius: 8px; transition: width .4s ease; width: 0%; }
+  .progress-label { font-size: 12px; color: var(--cinza); text-align: right; }
+
+  .log-box { background: var(--log-bg); color: var(--log-color); border-radius: 10px; padding: 14px 16px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; height: 180px; overflow-y: auto; margin-top: 12px; line-height: 1.7; }
+  .log-box .log-line { opacity: 0; animation: fadein .3s forwards; }
+  @keyframes fadein { to { opacity: 1; } }
+  .log-box .ok  { color: #56d364; }
+  .log-box .err { color: #f85149; }
+
+  /* Scenarios list during progress */
+  .scenarios-live { display: grid; gap: 8px; margin-top: 16px; }
+  .sc-item { display: flex; align-items: center; gap: 12px; background: var(--sc-item-bg); border: 1px solid var(--borda); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+  .sc-item .sc-label { flex: 1; font-weight: 500; }
+  .sc-item .sc-status { font-size: 12px; color: var(--cinza); }
+  .sc-item.done .sc-status { display: none; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--progress-track); border-top-color: var(--azul); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sc-item.done .spinner { display: none; }
+
+  /* ─── Badge ──────────────────────────────────────────────────────────────── */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+  .APROVADO  { background: var(--verde-c);   color: var(--verde);   border: 1px solid var(--verde-b); }
+  .ATENCAO   { background: var(--amarelo-c); color: var(--amarelo); border: 1px solid var(--amarelo-b); }
+  .REPROVADO { background: var(--vermelho-c);color: var(--vermelho);border: 1px solid var(--vermelho-b); }
+
+  /* ─── Results area ───────────────────────────────────────────────────────── */
+  #section-results { display: none; }
+
+  .veredicto-box { border-radius: 12px; padding: 24px 28px; display: flex; align-items: center; gap: 24px; margin-bottom: 20px; }
+  .veredicto-box.APROVADO  { background: var(--verde-c);   border: 2px solid var(--verde-b); }
+  .veredicto-box.ATENCAO   { background: var(--amarelo-c); border: 2px solid var(--amarelo-b); }
+  .veredicto-box.REPROVADO { background: var(--vermelho-c);border: 2px solid var(--vermelho-b); }
+  .vg-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--cinza); }
+  .vg-text  { font-size: 32px; font-weight: 900; letter-spacing: .5px; margin-top: 2px; }
+  .APROVADO  .vg-text { color: var(--verde); }
+  .ATENCAO   .vg-text { color: var(--amarelo); }
+  .REPROVADO .vg-text { color: var(--vermelho); }
+  .vg-counts { font-size: 13px; color: var(--body-color); line-height: 1.8; }
+  .vg-actions { margin-left: auto; display: flex; flex-direction: column; gap: 8px; }
+  .btn-link { display: inline-flex; align-items: center; gap: 6px; background: #1a1f2e; color: #fff; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: opacity .2s; }
+  [data-theme="dark"] .btn-link { background: #30363d; color: #e6edf3; }
+  .btn-link:hover { opacity: .85; }
+  .btn-link.outline { background: var(--outline-btn-bg); color: var(--outline-btn-color); border: 1px solid var(--borda); }
+  .btn-link.outline:hover { opacity: .85; }
+
+  /* ─── Tabela de resultados ───────────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #1a1f2e; color: #fff; padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
+  [data-theme="dark"] thead th { background: #010409; color: #c9d1d9; }
+  tbody tr:nth-child(even) { background: var(--row-even); }
+  tbody tr:hover { background: var(--row-hover); }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--borda); vertical-align: middle; color: var(--body-color); }
+
+  /* Score bar inline */
+  .score-bar { display: flex; align-items: center; gap: 6px; }
+  .score-bar .bar { flex: 1; height: 7px; background: var(--progress-track); border-radius: 4px; overflow: hidden; min-width: 60px; }
+  .score-bar .fill { height: 100%; border-radius: 4px; }
+  .fill.APROVADO  { background: var(--verde); }
+  .fill.ATENCAO   { background: var(--amarelo); }
+  .fill.REPROVADO { background: var(--vermelho); }
+  .score-num { font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+  /* Expandable row detail */
+  .detail-row { display: none; background: var(--detail-bg); }
+  .detail-row.open { display: table-row; }
+  .detail-cell { padding: 16px 20px; border-bottom: 1px solid var(--borda); }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .detail-chip { background: var(--chip-bg); border: 1px solid var(--borda); border-radius: 8px; padding: 9px 13px; }
+  .chip-label { font-size: 10px; color: var(--cinza); text-transform: uppercase; letter-spacing: .4px; }
+  .chip-val   { font-size: 17px; font-weight: 700; margin-top: 1px; color: var(--body-color); }
+  .score-breakdown { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 8px; margin-top: 14px; }
+  .sb-item { background: var(--sb-bg); border: 1px solid var(--borda); border-radius: 7px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .sb-name { color: var(--cinza); }
+  .sb-val  { font-weight: 700; }
+
+  /* Expandable trigger */
+  tbody tr.has-detail { cursor: pointer; }
+  .expand-icon { font-size: 10px; color: var(--cinza); margin-left: 4px; transition: transform .2s; }
+  tbody tr.expanded .expand-icon { transform: rotate(180deg); }
+
+  /* Error state */
+  .error-box { background: var(--vermelho-c); border: 1px solid var(--vermelho-b); border-radius: 10px; padding: 16px 20px; color: var(--vermelho); font-size: 13px; margin-top: 12px; display: none; }
+
+  /* ─── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .cred-fields.open { grid-template-columns: 1fr; }
+    .veredicto-box { flex-direction: column; align-items: flex-start; }
+    .vg-actions { margin-left: 0; flex-direction: row; flex-wrap: wrap; }
+    .crit-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Botão de tema -->
+<button id="theme-btn" title="Alternar tema escuro/claro">🌙</button>
+
+<div class="wrap">
+
+  <div class="hdr">
+    <h1>WFA Extractor</h1>
+    <p>Carregue o arquivo <code>.wfa</code> e visualize a avaliação automática dos 12 cenários</p>
+  </div>
+
+  <!-- Formulário de upload -->
+  <div class="card" id="card-form">
+    <div class="card-head">📂 Arquivo &amp; Configuração</div>
+    <div class="card-body">
+      <form id="form-wfa" autocomplete="off">
+
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="wfa-input" name="wfa_file" accept=".wfa" required>
+          <div class="dz-icon">📄</div>
+          <div class="dz-text">Arraste o arquivo <code>.wfa</code> aqui</div>
+          <div class="dz-sub">ou clique para selecionar</div>
+          <div class="dz-filename" id="dz-filename"></div>
+        </div>
+
+        <!-- Nome da estratégia -->
+        <div style="margin-top:16px">
+          <div class="field-group">
+            <label for="f-estrategia">Nome da Estratégia</label>
+            <input type="text" id="f-estrategia" name="estrategia"
+              placeholder="ex: Venus3_EURUSD_H1"
+              style="width:100%">
+          </div>
+          <p class="hint">Usado no nome dos relatórios: <code>Avalia_WFA_[nome]_timestamp</code>. Deixe em branco para usar o nome padrão.</p>
+        </div>
+
+        <!-- Credenciais (colapsável) -->
+        <div style="margin-top:16px">
+          <button type="button" class="cred-toggle" id="cred-toggle">
+            🔑 Informar credenciais manualmente
+          </button>
+          <div class="cred-fields" id="cred-fields">
+            <div class="field-group">
+              <label for="f-email">E-mail BotSpot</label>
+              <input type="email" id="f-email" name="email" placeholder="seu@email.com">
+            </div>
+            <div class="field-group">
+              <label for="f-password">Senha</label>
+              <input type="password" id="f-password" name="password" placeholder="••••••••">
+            </div>
+          </div>
+          <p class="hint">Deixe em branco para usar as credenciais do arquivo <code>.env</code></p>
+        </div>
+
+        <!-- Critérios de Avaliação (colapsável) -->
+        <div class="crit-panel" style="margin-top:16px">
+          <div class="crit-panel-header" id="crit-toggle">
+            <span>⚙ Critérios de Avaliação</span>
+            <span class="crit-chevron">▼</span>
+          </div>
+          <div class="crit-panel-body" id="crit-body">
+
+            <!-- Thresholds -->
+            <div class="crit-section">
+              <div class="crit-section-title">Thresholds de Veredicto</div>
+              <div class="crit-thresh-row">
+                <strong>APROVADO</strong> ≥
+                <input type="number" id="crit-th-aprovado" class="crit-num" value="75" min="0" max="100"> pts
+                &nbsp;&nbsp;
+                <strong>ATENÇÃO</strong> ≥
+                <input type="number" id="crit-th-atencao" class="crit-num" value="50" min="0" max="100"> pts
+              </div>
+            </div>
+
+            <!-- Representatividade -->
+            <div class="crit-section">
+              <div class="crit-section-title">Representatividade <span class="crit-max">(máx: 20 pts)</span></div>
+              <div class="crit-faixas">
+                <div class="crit-faixa">
+                  <span class="faixa-label">0 steps acima de 25% do equity</span>
+                  <input type="number" id="crit-rep-0" class="crit-num" value="20" min="0"> pts
+                </div>
+                <div class="crit-faixa">
+                  <span class="faixa-label">1 step acima de 25% do equity</span>
+                  <input type="number" id="crit-rep-1" class="crit-num" value="8" min="0"> pts
+                </div>
+                <div class="crit-faixa">
+                  <span class="faixa-label">2+ steps acima de 25% do equity</span>
+                  <span class="crit-fixed">0 pts (fixo)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Consecutivos Negativos -->
+            <div class="crit-section">
+              <div class="crit-section-title">Steps Negativos Consecutivos <span class="crit-max">(máx: 20 pts)</span></div>
+              <div class="crit-faixas">
+                <div class="crit-faixa">
+                  <span class="faixa-label">Nenhum par negativo</span>
+                  <input type="number" id="crit-consec-0" class="crit-num" value="20" min="0"> pts
+                </div>
+                <div class="crit-faixa">
+                  <span class="faixa-label">1 par curto (&lt;12 meses)</span>
+                  <input type="number" id="crit-consec-1" class="crit-num" value="12" min="0"> pts
+                </div>
+                <div class="crit-faixa">
+                  <span class="faixa-label">1 par longo (≥12 meses / ano neg.)</span>
+                  <input type="number" id="crit-consec-2" class="crit-num" value="4" min="0"> pts
+                </div>
+                <div class="crit-faixa">
+                  <span class="faixa-label">2+ pares negativos</span>
+                  <span class="crit-fixed">0 pts (fixo)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid 2x2: critérios com faixas numéricas -->
+            <div class="crit-grid">
+
+              <!-- % Steps WFE Positivo -->
+              <div class="crit-section">
+                <div class="crit-section-title">% Steps WFE Positivo <span class="crit-max">(máx: 20 pts)</span></div>
+                <table class="crit-table">
+                  <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
+                  <tbody>
+                    <tr><td><input type="number" id="crit-pct-min-0" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-0" class="crit-num" value="20" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-1" class="crit-num" value="65" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-1" class="crit-num" value="17" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-2" class="crit-num" value="50" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-2" class="crit-num" value="13" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-3" class="crit-num" value="35" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-3" class="crit-num" value="6" min="0"></td></tr>
+                    <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Z-Score -->
+              <div class="crit-section">
+                <div class="crit-section-title">Z-Score <span class="crit-max">(máx: 15 pts)</span></div>
+                <table class="crit-table">
+                  <thead><tr><th>Mínimo</th><th>Pontos</th></tr></thead>
+                  <tbody>
+                    <tr><td><input type="number" id="crit-zs-min-0" class="crit-num" value="5" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-0" class="crit-num" value="15" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-1" class="crit-num" value="4" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-1" class="crit-num" value="12" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-2" class="crit-num" value="3" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-2" class="crit-num" value="9" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-3" class="crit-num" value="2" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-3" class="crit-num" value="4" min="0"></td></tr>
+                    <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- WFE Médio -->
+              <div class="crit-section">
+                <div class="crit-section-title">WFE Médio <span class="crit-max">(máx: 13 pts)</span></div>
+                <table class="crit-table">
+                  <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
+                  <tbody>
+                    <tr><td><input type="number" id="crit-wfem-min-0" class="crit-num" value="90" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-0" class="crit-num" value="13" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-1" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-1" class="crit-num" value="11" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-2" class="crit-num" value="70" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-2" class="crit-num" value="8" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-3" class="crit-num" value="60" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-3" class="crit-num" value="4" min="0"></td></tr>
+                    <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- WFE s/ Outliers -->
+              <div class="crit-section">
+                <div class="crit-section-title">WFE s/ Outliers <span class="crit-max">(máx: 12 pts)</span></div>
+                <table class="crit-table">
+                  <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
+                  <tbody>
+                    <tr><td><input type="number" id="crit-wfeo-min-0" class="crit-num" value="90" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-0" class="crit-num" value="12" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-1" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-1" class="crit-num" value="10" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-2" class="crit-num" value="70" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-2" class="crit-num" value="7" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-3" class="crit-num" value="60" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-3" class="crit-num" value="3" min="0"></td></tr>
+                    <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+            </div><!-- /crit-grid -->
+
+            <!-- Botão salvar critérios -->
+            <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
+              <button type="button" id="btn-save-crit"
+                style="background:var(--azul);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s">
+                💾 Salvar como padrão
+              </button>
+              <span id="save-crit-msg" style="font-size:12px;color:var(--verde);display:none">✓ Critérios salvos!</span>
+            </div>
+
+          </div><!-- /crit-panel-body -->
+        </div><!-- /crit-panel -->
+
+        <button type="submit" class="btn-run" id="btn-run" disabled style="margin-top:16px">
+          ▶ Iniciar Extração
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Progresso -->
+  <div id="section-progress">
+    <div class="card">
+      <div class="card-head" id="progress-title">⏳ Processando...</div>
+      <div class="card-body">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-label" id="progress-label">Iniciando...</div>
+        <div class="log-box" id="log-box"></div>
+        <div class="error-box" id="error-box"></div>
+        <div class="scenarios-live" id="scenarios-live"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultados -->
+  <div id="section-results">
+    <div id="veredicto-box" class="veredicto-box"></div>
+
+    <div class="card">
+      <div class="card-head">📊 Resultado dos 12 Cenários</div>
+      <div class="card-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table id="result-table">
+            <thead>
+              <tr>
+                <th>Cenário</th>
+                <th>Steps</th>
+                <th>IS</th>
+                <th>OOS</th>
+                <th>WFE WFM</th>
+                <th>Z-Score</th>
+                <th>WFE Médio</th>
+                <th>% Pos.</th>
+                <th>Pontuação</th>
+                <th>Veredicto</th>
+              </tr>
+            </thead>
+            <tbody id="result-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Tema escuro ──────────────────────────────────────────────────────────────
+(function () {
+  const html = document.documentElement;
+  const btn  = document.getElementById('theme-btn');
+  const KEY  = 'wfa-theme';
+
+  function applyTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem(KEY, theme);
+  }
+
+  // Restaurar preferência salva
+  applyTheme(localStorage.getItem(KEY) || 'light');
+
+  btn.addEventListener('click', () => {
+    applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+})();
+
+// ─── Painel de critérios (toggle) ────────────────────────────────────────────
+document.getElementById('crit-toggle').addEventListener('click', function () {
+  const body = document.getElementById('crit-body');
+  const open = body.classList.toggle('open');
+  this.classList.toggle('open', open);
+});
+
+// ─── Persistência dos critérios (localStorage) ────────────────────────────────
+const CRIT_KEY = 'wfa-criterios';
+
+// IDs de todos os campos editáveis dos critérios
+const CRIT_IDS = [
+  'crit-th-aprovado', 'crit-th-atencao',
+  'crit-rep-0', 'crit-rep-1',
+  'crit-consec-0', 'crit-consec-1', 'crit-consec-2',
+  'crit-pct-min-0', 'crit-pct-min-1', 'crit-pct-min-2', 'crit-pct-min-3',
+  'crit-pct-pts-0', 'crit-pct-pts-1', 'crit-pct-pts-2', 'crit-pct-pts-3',
+  'crit-zs-min-0',  'crit-zs-min-1',  'crit-zs-min-2',  'crit-zs-min-3',
+  'crit-zs-pts-0',  'crit-zs-pts-1',  'crit-zs-pts-2',  'crit-zs-pts-3',
+  'crit-wfem-min-0','crit-wfem-min-1','crit-wfem-min-2','crit-wfem-min-3',
+  'crit-wfem-pts-0','crit-wfem-pts-1','crit-wfem-pts-2','crit-wfem-pts-3',
+  'crit-wfeo-min-0','crit-wfeo-min-1','crit-wfeo-min-2','crit-wfeo-min-3',
+  'crit-wfeo-pts-0','crit-wfeo-pts-1','crit-wfeo-pts-2','crit-wfeo-pts-3',
+];
+
+function saveCriteria() {
+  const values = {};
+  CRIT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) values[id] = el.value;
+  });
+  localStorage.setItem(CRIT_KEY, JSON.stringify(values));
+}
+
+function loadCriteria() {
+  try {
+    const raw = localStorage.getItem(CRIT_KEY);
+    if (!raw) return;
+    const values = JSON.parse(raw);
+    CRIT_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && values[id] !== undefined) el.value = values[id];
+    });
+  } catch (e) {
+    // localStorage corrompido — ignora e usa defaults do HTML
+  }
+}
+
+// Carrega critérios salvos ao iniciar a página
+loadCriteria();
+
+// Botão SALVAR
+document.getElementById('btn-save-crit').addEventListener('click', () => {
+  saveCriteria();
+  const msg = document.getElementById('save-crit-msg');
+  msg.style.display = 'inline';
+  setTimeout(() => { msg.style.display = 'none'; }, 2500);
+});
+
+// ─── Dropzone ────────────────────────────────────────────────────────────────
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('wfa-input');
+const dzName    = document.getElementById('dz-filename');
+const btnRun    = document.getElementById('btn-run');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) {
+    dzName.textContent = fileInput.files[0].name;
+    dropzone.classList.add('has-file');
+    btnRun.disabled = false;
+  }
+});
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('over');
+  const dt = e.dataTransfer;
+  if (dt.files.length && dt.files[0].name.endsWith('.wfa')) {
+    fileInput.files = dt.files;
+    dzName.textContent = dt.files[0].name;
+    dropzone.classList.add('has-file');
+    btnRun.disabled = false;
+    dropzone.droppedFile = dt.files[0];
+  }
+});
+
+// ─── Credenciais toggle ───────────────────────────────────────────────────────
+document.getElementById('cred-toggle').addEventListener('click', () => {
+  const f = document.getElementById('cred-fields');
+  f.classList.toggle('open');
+  document.getElementById('cred-toggle').textContent =
+    f.classList.contains('open')
+      ? '🔑 Ocultar credenciais'
+      : '🔑 Informar credenciais manualmente';
+});
+
+// ─── Serialização dos critérios ───────────────────────────────────────────────
+function numVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function buildScoringConfig() {
+  return {
+    representatividade: {
+      faixas: [
+        { condicao: 'zero',           pts: numVal('crit-rep-0') },
+        { condicao: 'um',             pts: numVal('crit-rep-1') },
+        { condicao: 'dois_ou_mais',   pts: 0 },
+      ],
+    },
+    consecutivos_negativos: {
+      faixas: [
+        { condicao: 'nenhum',              pts: numVal('crit-consec-0') },
+        { condicao: 'par_curto',           pts: numVal('crit-consec-1') },
+        { condicao: 'par_longo_ou_ano',    pts: numVal('crit-consec-2') },
+        { condicao: 'dois_ou_mais_pares',  pts: 0 },
+      ],
+    },
+    pct_wfe_positivo: {
+      faixas: [
+        { minimo: numVal('crit-pct-min-0'), pts: numVal('crit-pct-pts-0') },
+        { minimo: numVal('crit-pct-min-1'), pts: numVal('crit-pct-pts-1') },
+        { minimo: numVal('crit-pct-min-2'), pts: numVal('crit-pct-pts-2') },
+        { minimo: numVal('crit-pct-min-3'), pts: numVal('crit-pct-pts-3') },
+        { minimo: 0.0, pts: 0 },
+      ],
+    },
+    zscore: {
+      faixas: [
+        { minimo: numVal('crit-zs-min-0'), pts: numVal('crit-zs-pts-0') },
+        { minimo: numVal('crit-zs-min-1'), pts: numVal('crit-zs-pts-1') },
+        { minimo: numVal('crit-zs-min-2'), pts: numVal('crit-zs-pts-2') },
+        { minimo: numVal('crit-zs-min-3'), pts: numVal('crit-zs-pts-3') },
+        { minimo: 0.0, pts: 0 },
+      ],
+    },
+    wfe_medio: {
+      faixas: [
+        { minimo: numVal('crit-wfem-min-0'), pts: numVal('crit-wfem-pts-0') },
+        { minimo: numVal('crit-wfem-min-1'), pts: numVal('crit-wfem-pts-1') },
+        { minimo: numVal('crit-wfem-min-2'), pts: numVal('crit-wfem-pts-2') },
+        { minimo: numVal('crit-wfem-min-3'), pts: numVal('crit-wfem-pts-3') },
+        { minimo: 0.0, pts: 0 },
+      ],
+    },
+    wfe_sem_outliers: {
+      faixas: [
+        { minimo: numVal('crit-wfeo-min-0'), pts: numVal('crit-wfeo-pts-0') },
+        { minimo: numVal('crit-wfeo-min-1'), pts: numVal('crit-wfeo-pts-1') },
+        { minimo: numVal('crit-wfeo-min-2'), pts: numVal('crit-wfeo-pts-2') },
+        { minimo: numVal('crit-wfeo-min-3'), pts: numVal('crit-wfeo-pts-3') },
+        { minimo: 0.0, pts: 0 },
+      ],
+    },
+  };
+}
+
+function buildThresholds() {
+  return {
+    aprovado: numVal('crit-th-aprovado') || 75,
+    atencao:  numVal('crit-th-atencao')  || 50,
+  };
+}
+
+// ─── Utilitários ─────────────────────────────────────────────────────────────
+function vcClass(v) {
+  if (v === 'APROVADO')  return 'APROVADO';
+  if (v === 'ATENÇÃO')   return 'ATENCAO';
+  if (v === 'REPROVADO') return 'REPROVADO';
+  return 'ATENCAO';
+}
+
+function badge(v) {
+  return `<span class="badge ${vcClass(v)}">${v}</span>`;
+}
+
+function scoreBar(pts, cls) {
+  return `<div class="score-bar">
+    <div class="bar"><div class="fill ${cls}" style="width:${pts}%"></div></div>
+    <span class="score-num">${pts}/100</span>
+  </div>`;
+}
+
+function log(msg, cls) {
+  const box = document.getElementById('log-box');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (cls ? ' ' + cls : '');
+  line.textContent = msg;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let totalScenarios = 0;
+let doneScenarios  = 0;
+const scenarioData = {};
+
+// ─── Submit do formulário ─────────────────────────────────────────────────────
+document.getElementById('form-wfa').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  btnRun.disabled = true;
+  btnRun.textContent = '⏳ Enviando...';
+
+  document.getElementById('section-progress').style.display = 'block';
+  document.getElementById('section-results').style.display  = 'none';
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('scenarios-live').innerHTML = '';
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('result-tbody').innerHTML = '';
+  totalScenarios = 0; doneScenarios = 0;
+
+  const fd = new FormData();
+  const file = dropzone.droppedFile || fileInput.files[0];
+  fd.append('wfa_file',   file);
+  fd.append('email',     document.getElementById('f-email').value);
+  fd.append('password',  document.getElementById('f-password').value);
+  fd.append('estrategia', document.getElementById('f-estrategia').value.trim());
+  fd.append('scoring_config',       JSON.stringify(buildScoringConfig()));
+  fd.append('veredicto_thresholds', JSON.stringify(buildThresholds()));
+
+  let jobId;
+  try {
+    const res = await fetch('/extrair', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
+    const data = await res.json();
+    jobId = data.job_id;
+  } catch (err) {
+    showError('Falha ao enviar arquivo: ' + err.message);
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Iniciar Extração';
+    return;
+  }
+
+  const es = new EventSource(`/stream/${jobId}`);
+  let sseFinished = false;
+
+  es.onmessage = e => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    handleEvent(msg, es, () => { sseFinished = true; });
+  };
+
+  es.onerror = () => {
+    if (sseFinished) return;
+    es.close();
+    showError('Conexão interrompida com o servidor.');
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Iniciar Extração';
+  };
+});
+
+// ─── Handlers de eventos SSE ──────────────────────────────────────────────────
+function handleEvent(msg, es, markFinished) {
+  if (msg.type === 'ping') return;
+
+  if (msg.type === 'log') {
+    const cls = msg.msg.startsWith('✓') ? 'ok' : '';
+    log(msg.msg, cls);
+  }
+
+  if (msg.type === 'progress_init') {
+    totalScenarios = msg.total;
+    updateProgressBar(0, msg.total);
+    buildScenarioSlots(msg.total);
+  }
+
+  if (msg.type === 'scenario_start') {
+    const slot = document.getElementById(`sc-${msg.index}`);
+    if (slot) slot.querySelector('.sc-status').textContent = `Processando...`;
+    log(`[${msg.index + 1}/${msg.total}] ${msg.label}`);
+  }
+
+  if (msg.type === 'scenario_done') {
+    doneScenarios++;
+    scenarioData[msg.index] = msg;
+    updateProgressBar(doneScenarios, totalScenarios);
+
+    const slot = document.getElementById(`sc-${msg.index}`);
+    if (slot) {
+      slot.classList.add('done');
+      slot.innerHTML = `
+        <span class="sc-label">${msg.label}</span>
+        ${badge(msg.veredicto)}
+        <span style="font-size:12px;color:var(--cinza);margin-left:4px">${msg.total_pts}/100 pts</span>
+      `;
+    }
+  }
+
+  if (msg.type === 'done') {
+    markFinished();
+    es.close();
+    renderResults(msg);
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Nova Extração';
+    document.getElementById('progress-title').textContent = '✅ Concluído';
+    updateProgressBar(totalScenarios, totalScenarios);
+  }
+
+  if (msg.type === 'error') {
+    markFinished();
+    es.close();
+    showError(msg.msg || '(sem mensagem)', msg.detail);
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Tentar Novamente';
+    document.getElementById('progress-title').textContent = '❌ Erro na Extração';
+  }
+}
+
+function buildScenarioSlots(n) {
+  const cont = document.getElementById('scenarios-live');
+  cont.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const div = document.createElement('div');
+    div.className = 'sc-item';
+    div.id = `sc-${i}`;
+    div.innerHTML = `
+      <div class="spinner"></div>
+      <span class="sc-label">Cenário ${i + 1}</span>
+      <span class="sc-status">Aguardando...</span>
+    `;
+    cont.appendChild(div);
+  }
+}
+
+function updateProgressBar(done, total) {
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `${done} / ${total} cenários processados`;
+}
+
+function showError(msg, detail) {
+  const box = document.getElementById('error-box');
+  box.style.display = 'block';
+  box.innerHTML = '<strong>⚠ ' + msg + '</strong>' +
+    (detail ? '<pre style="margin-top:8px;font-size:11px;white-space:pre-wrap;opacity:.8">' + detail + '</pre>' : '');
+  log('ERRO: ' + msg, 'err');
+}
+
+// ─── Renderização dos resultados ──────────────────────────────────────────────
+function renderResults(msg) {
+  document.getElementById('section-results').style.display = 'block';
+  document.getElementById('section-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const cls = vcClass(msg.veredicto_global);
+  const vbox = document.getElementById('veredicto-box');
+  vbox.className = `veredicto-box ${cls}`;
+  vbox.innerHTML = `
+    <div>
+      <div class="vg-label">Veredicto Global</div>
+      <div class="vg-text">${msg.veredicto_global}</div>
+    </div>
+    <div class="vg-counts">
+      ✅ <strong>${msg.aprovados}</strong> Aprovados &nbsp;|&nbsp;
+      ⚠️ <strong>${msg.atencao}</strong> Atenção &nbsp;|&nbsp;
+      ❌ <strong>${msg.reprovados}</strong> Reprovados<br>
+      <span style="font-size:12px;color:var(--cinza)">Arquivo: ${msg.arquivo}</span>
+    </div>
+    <div class="vg-actions">
+      <a href="${msg.html_path}" target="_blank" class="btn-link">📊 Ver Relatório Completo</a>
+      <a href="${msg.json_path}" target="_blank" class="btn-link outline">⬇ Baixar JSON</a>
+    </div>
+  `;
+
+  const tbody = document.getElementById('result-tbody');
+  const n = totalScenarios;
+
+  for (let i = 0; i < n; i++) {
+    const d = scenarioData[i];
+    if (!d) continue;
+
+    const cls2 = vcClass(d.veredicto);
+    const wfm  = d.wfm_row || {};
+    const m    = d.metrics || {};
+
+    const tr = document.createElement('tr');
+    tr.className = 'has-detail';
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td><strong>${i + 1}</strong> <span class="expand-icon">▼</span></td>
+      <td>${wfm.steps || '—'}</td>
+      <td>${wfm.in_sample || '—'}</td>
+      <td>${wfm.out_of_sample || '—'}</td>
+      <td>${wfm.wfe || '—'}</td>
+      <td>${m.zscore ?? '—'}</td>
+      <td>${m.wfe_medio != null ? m.wfe_medio.toFixed(1) + '%' : '—'}</td>
+      <td>${m.pct_steps_positivos != null ? m.pct_steps_positivos.toFixed(1) + '%' : '—'}</td>
+      <td>${scoreBar(d.total_pts, cls2)}</td>
+      <td>${badge(d.veredicto)}</td>
+    `;
+    tbody.appendChild(tr);
+
+    const trDetail = document.createElement('tr');
+    trDetail.className = 'detail-row';
+    trDetail.id = `detail-${i}`;
+    trDetail.innerHTML = `<td class="detail-cell" colspan="10">${buildDetail(d, wfm)}</td>`;
+    tbody.appendChild(trDetail);
+
+    tr.addEventListener('click', () => {
+      tr.classList.toggle('expanded');
+      trDetail.classList.toggle('open');
+    });
+  }
+}
+
+function buildDetail(d, wfm) {
+  const m = d.metrics;
+  const s = d.scores;
+
+  const chips = [
+    { label: 'Z-Score', val: m.zscore },
+    { label: 'WFE Médio', val: m.wfe_medio != null ? m.wfe_medio.toFixed(1) + '%' : '—' },
+    { label: 'WFE s/ Outliers', val: m.wfe_sem_outliers != null ? m.wfe_sem_outliers.toFixed(1) + '%' : '—' },
+    { label: '% Steps Pos.', val: m.pct_steps_positivos != null ? m.pct_steps_positivos.toFixed(1) + '%' : '—' },
+    { label: 'Máx. Consecutivos Neg.', val: m.max_consecutivos },
+    { label: 'Máx. Representatividade', val: m.max_representatividade != null ? m.max_representatividade.toFixed(1) + '%' : '—' },
+  ];
+
+  const scoreItems = [
+    { label: 'Representatividade', pts: s.representatividade, max: 20 },
+    { label: 'Consecutivos Neg.', pts: s.consecutivos_negativos, max: 20 },
+    { label: '% WFE Positivo', pts: s.pct_steps_positivos, max: 20 },
+    { label: 'Z-Score', pts: s.zscore, max: 15 },
+    { label: 'WFE Médio', pts: s.wfe_medio, max: 13 },
+    { label: 'WFE s/ Outliers', pts: s.wfe_sem_outliers, max: 12 },
+  ];
+
+  const chipsHtml = chips.map(c =>
+    `<div class="detail-chip"><div class="chip-label">${c.label}</div><div class="chip-val">${c.val}</div></div>`
+  ).join('');
+
+  const sbHtml = scoreItems.map(si => {
+    const pct = Math.round(si.pts / si.max * 100);
+    const col = pct >= 75 ? 'var(--verde)' : pct >= 40 ? 'var(--amarelo)' : 'var(--vermelho)';
+    return `<div class="sb-item">
+      <span class="sb-name">${si.label}</span>
+      <span class="sb-val" style="color:${col}">${si.pts}/${si.max}</span>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="font-size:11px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Indicadores</div>
+    <div class="detail-grid">${chipsHtml}</div>
+    <div style="font-size:11px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px;">Pontuação por Critério</div>
+    <div class="score-breakdown">${sbHtml}</div>
+  `;
+}
+</script>
+</body>
+</html>
