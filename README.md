@@ -585,4 +585,4 @@ Edite `output/templates/report.html.j2`. É um template Jinja2 com acesso a toda
 
 ## Licença e Contato
 
-Projeto interno — Josue Gomes
+Projeto aberto — Josue Gomes
