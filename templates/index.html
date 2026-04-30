@@ -642,7 +642,10 @@ async function loadRelatorios() {
 
   try {
     const res = await fetch('/relatorios');
+    if (!res.ok) throw new Error(`HTTP ${res.status} — reinicie o servidor para carregar os novos endpoints`);
     const lista = await res.json();
+
+    if (!Array.isArray(lista)) throw new Error('Resposta inesperada do servidor — reinicie o servidor');
 
     count.textContent = lista.length === 0 ? '' :
       lista.length === 1 ? '1 relatório' : `${lista.length} relatórios`;
