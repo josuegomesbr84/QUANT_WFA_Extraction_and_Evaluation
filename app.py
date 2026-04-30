@@ -10,15 +10,17 @@ import json
 import logging
 import os
 import queue as tq
+import re
 import threading
 import traceback
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from scraper.runner import run_with_progress
@@ -205,6 +207,70 @@ async def stream(job_id: str):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/relatorios")
+async def listar_relatorios():
+    """Retorna lista de relatórios HTML gerados, ordenados do mais recente ao mais antigo."""
+    pasta = Path("resultados")
+    pasta.mkdir(exist_ok=True)
+    resultado = []
+
+    for f in sorted(pasta.glob("*.html"), key=lambda x: x.stat().st_mtime, reverse=True):
+        nome = f.stem
+        estrategia = ""
+        data_fmt = ""
+        try:
+            if nome.startswith("Avalia_WFA_"):
+                partes = nome[len("Avalia_WFA_"):]
+                # últimas duas partes são YYYYMMDD e HHMMSS
+                bits = partes.split("_")
+                ts_str = "_".join(bits[-2:])
+                estrategia = " ".join(bits[:-2])
+                dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S")
+                data_fmt = dt.strftime("%d/%m/%Y %H:%M")
+            elif nome.startswith("relatorio_"):
+                ts_str = nome[len("relatorio_"):]
+                dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S")
+                data_fmt = dt.strftime("%d/%m/%Y %H:%M")
+            else:
+                data_fmt = datetime.fromtimestamp(f.stat().st_mtime).strftime("%d/%m/%Y %H:%M")
+        except Exception:
+            data_fmt = datetime.fromtimestamp(f.stat().st_mtime).strftime("%d/%m/%Y %H:%M")
+
+        resultado.append({
+            "filename": f.name,
+            "url": f"/resultados/{f.name}",
+            "estrategia": estrategia,
+            "data_fmt": data_fmt,
+            "size_kb": round(f.stat().st_size / 1024, 1),
+        })
+
+    return JSONResponse(resultado)
+
+
+@app.post("/importar-relatorio")
+async def importar_relatorio(html_file: UploadFile = File(...)):
+    """Recebe um arquivo HTML externo e o salva em resultados/."""
+    pasta = Path("resultados")
+    pasta.mkdir(exist_ok=True)
+
+    nome_original = html_file.filename or "importado.html"
+    nome_seguro = re.sub(r'[\\/:*?"<>|]', '_', nome_original)
+    if not nome_seguro.lower().endswith(".html"):
+        nome_seguro += ".html"
+
+    dest = pasta / nome_seguro
+    # Evita sobrescrever arquivo existente
+    if dest.exists():
+        stem = dest.stem
+        dest = pasta / f"{stem}_importado.html"
+
+    content = await html_file.read()
+    dest.write_bytes(content)
+    log.info("Relatório importado: %s", dest.name)
+
+    return {"filename": dest.name, "url": f"/resultados/{dest.name}"}
 
 
 @app.get("/test-sse")

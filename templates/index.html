@@ -253,6 +253,43 @@
   /* Error state */
   .error-box { background: var(--vermelho-c); border: 1px solid var(--vermelho-b); border-radius: 10px; padding: 16px 20px; color: var(--vermelho); font-size: 13px; margin-top: 12px; display: none; }
 
+  /* ─── Abas ──────────────────────────────────────────────────────────────── */
+  .tab-bar { display: flex; gap: 2px; margin-bottom: 24px; border-bottom: 2px solid var(--borda); }
+  .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; padding: 10px 22px; font-size: 14px; font-weight: 600; color: var(--cinza); cursor: pointer; border-radius: 6px 6px 0 0; transition: color .15s, border-color .15s; }
+  .tab-btn:hover { color: var(--body-color); background: var(--row-even); }
+  .tab-btn.active { color: var(--azul); border-bottom-color: var(--azul); }
+
+  /* ─── Painel de Histórico ────────────────────────────────────────────────── */
+  .report-grid { display: grid; gap: 10px; }
+  .report-card { display: flex; align-items: center; gap: 14px; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 10px; padding: 13px 16px; transition: border-color .15s; }
+  .report-card:hover { border-color: var(--azul-b); }
+  .report-icon { font-size: 26px; flex-shrink: 0; }
+  .report-info { flex: 1; min-width: 0; }
+  .report-name { font-size: 13px; font-weight: 700; color: var(--body-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .report-meta { font-size: 11px; color: var(--cinza); margin-top: 3px; }
+  .report-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn-sm { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--borda); background: var(--card-bg); color: var(--body-color); transition: opacity .15s; text-decoration: none; }
+  .btn-sm:hover { opacity: .8; }
+  .btn-sm.primary { background: var(--azul); color: #fff; border-color: var(--azul); }
+  .btn-sm.active-preview { background: var(--azul-c); border-color: var(--azul-b); color: var(--azul); }
+
+  .import-dz { border: 2px dashed var(--borda); border-radius: 10px; padding: 22px 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--dz-bg); position: relative; }
+  .import-dz:hover, .import-dz.over { border-color: var(--azul); background: var(--azul-c); }
+  .import-dz.done { border-color: var(--verde); background: var(--verde-c); }
+  .import-dz input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .preview-card { background: var(--card-bg); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  .preview-card .card-head { background: var(--card-head-bg); color: #fff; padding: 12px 18px; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+  [data-theme="dark"] .preview-card .card-head { color: #e6edf3; }
+  .preview-frame { width: 100%; height: 640px; border: none; display: block; }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--cinza); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .hist-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .hist-count { font-size: 13px; color: var(--cinza); }
+  .btn-refresh { background: none; border: 1px solid var(--borda); border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--cinza); cursor: pointer; transition: all .15s; }
+  .btn-refresh:hover { border-color: var(--azul); color: var(--azul); }
+
   /* ─── Responsive ─────────────────────────────────────────────────────────── */
   @media (max-width: 600px) {
     .cred-fields.open { grid-template-columns: 1fr; }
@@ -273,6 +310,15 @@
     <h1>WFA Extractor</h1>
     <p>Carregue o arquivo <code>.wfa</code> e visualize a avaliação automática dos 12 cenários</p>
   </div>
+
+  <!-- Navegação por abas -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-btn-extracao" onclick="switchTab('extracao')">📤 Extração</button>
+    <button class="tab-btn" id="tab-btn-historico" onclick="switchTab('historico')">📁 Histórico</button>
+  </div>
+
+  <!-- ── ABA: EXTRAÇÃO ────────────────────────────────────────────────────── -->
+  <div id="tab-extracao">
 
   <!-- Formulário de upload -->
   <div class="card" id="card-form">
@@ -510,6 +556,50 @@
     </div>
   </div>
 
+  </div><!-- /tab-extracao -->
+
+  <!-- ── ABA: HISTÓRICO ──────────────────────────────────────────────────── -->
+  <div id="tab-historico" style="display:none">
+
+    <!-- Importar relatório externo -->
+    <div class="card">
+      <div class="card-head">📥 Importar Relatório Externo</div>
+      <div class="card-body">
+        <div class="import-dz" id="import-dz">
+          <input type="file" id="import-input" accept=".html">
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <div style="font-size:14px;font-weight:600;color:var(--crit-label-color)">Arraste um relatório <code>.html</code> aqui</div>
+          <div style="font-size:12px;color:var(--cinza);margin-top:4px">ou clique para selecionar — relatórios gerados fora desta sessão</div>
+          <div id="import-msg" style="font-size:13px;font-weight:700;margin-top:8px;display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prévia inline -->
+    <div id="preview-wrap" style="display:none" class="preview-card">
+      <div class="card-head">
+        <span id="preview-title">Prévia</span>
+        <button class="btn-sm" onclick="closePreview()" style="color:#fff;border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1)">✕ Fechar</button>
+      </div>
+      <iframe id="preview-frame" src="" class="preview-frame"></iframe>
+    </div>
+
+    <!-- Lista de relatórios -->
+    <div class="card">
+      <div class="card-head">
+        📁 Relatórios Salvos
+      </div>
+      <div class="card-body">
+        <div class="hist-toolbar">
+          <span class="hist-count" id="hist-count"></span>
+          <button class="btn-refresh" onclick="loadRelatorios()">↻ Atualizar</button>
+        </div>
+        <div id="report-grid" class="report-grid"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-historico -->
+
 </div>
 
 <script>
@@ -530,6 +620,149 @@
 
   btn.addEventListener('click', () => {
     applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+})();
+
+// ─── Abas ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  ['extracao', 'historico'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
+    document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+  });
+  if (name === 'historico') loadRelatorios();
+}
+
+// ─── Histórico: carregar lista ────────────────────────────────────────────────
+let _previewActive = null; // filename da prévia aberta
+
+async function loadRelatorios() {
+  const grid = document.getElementById('report-grid');
+  const count = document.getElementById('hist-count');
+  grid.innerHTML = '<div style="color:var(--cinza);font-size:13px">Carregando...</div>';
+
+  try {
+    const res = await fetch('/relatorios');
+    const lista = await res.json();
+
+    count.textContent = lista.length === 0 ? '' :
+      lista.length === 1 ? '1 relatório' : `${lista.length} relatórios`;
+
+    if (lista.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Nenhum relatório encontrado em <code>resultados/</code>.<br>
+          Faça uma extração ou importe um arquivo acima.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = '';
+    lista.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'report-card';
+      card.id = 'rc-' + r.filename;
+      const label = r.estrategia
+        ? `<span style="font-weight:700">${r.estrategia}</span>`
+        : '<span style="color:var(--cinza);font-style:italic">sem nome</span>';
+      card.innerHTML = `
+        <div class="report-icon">📊</div>
+        <div class="report-info">
+          <div class="report-name" title="${r.filename}">${r.filename}</div>
+          <div class="report-meta">
+            ${label} &nbsp;·&nbsp; ${r.data_fmt || '—'} &nbsp;·&nbsp; ${r.size_kb} KB
+          </div>
+        </div>
+        <div class="report-actions">
+          <button class="btn-sm" id="prev-btn-${r.filename}"
+            onclick="togglePreview('${r.url}', '${r.filename}', this)">🔍 Prévia</button>
+          <a class="btn-sm primary" href="${r.url}" target="_blank">↗ Abrir</a>
+        </div>`;
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = `<div style="color:var(--vermelho);font-size:13px">Erro ao carregar relatórios: ${e.message}</div>`;
+  }
+}
+
+function togglePreview(url, filename, btn) {
+  const wrap  = document.getElementById('preview-wrap');
+  const frame = document.getElementById('preview-frame');
+  const title = document.getElementById('preview-title');
+
+  // Clicou no mesmo que já está aberto → fecha
+  if (_previewActive === filename && wrap.style.display !== 'none') {
+    closePreview();
+    return;
+  }
+
+  // Reseta botão anterior
+  if (_previewActive) {
+    const oldBtn = document.getElementById('prev-btn-' + _previewActive);
+    if (oldBtn) oldBtn.classList.remove('active-preview');
+  }
+
+  _previewActive = filename;
+  btn.classList.add('active-preview');
+  title.textContent = '🔍 ' + filename;
+  frame.src = url;
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closePreview() {
+  const wrap = document.getElementById('preview-wrap');
+  const frame = document.getElementById('preview-frame');
+  wrap.style.display = 'none';
+  frame.src = '';
+  if (_previewActive) {
+    const btn = document.getElementById('prev-btn-' + _previewActive);
+    if (btn) btn.classList.remove('active-preview');
+    _previewActive = null;
+  }
+}
+
+// ─── Importar relatório externo ───────────────────────────────────────────────
+(function () {
+  const dz  = document.getElementById('import-dz');
+  const inp = document.getElementById('import-input');
+  const msg = document.getElementById('import-msg');
+
+  async function doImport(file) {
+    if (!file || !file.name.toLowerCase().endsWith('.html')) {
+      showImportMsg('⚠ Selecione um arquivo .html', 'var(--amarelo)');
+      return;
+    }
+    showImportMsg('⏳ Importando...', 'var(--cinza)');
+    const fd = new FormData();
+    fd.append('html_file', file);
+    try {
+      const res = await fetch('/importar-relatorio', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      showImportMsg(`✓ Importado: ${data.filename}`, 'var(--verde)');
+      dz.classList.add('done');
+      loadRelatorios();
+      setTimeout(() => { dz.classList.remove('done'); hideImportMsg(); }, 3000);
+    } catch (e) {
+      showImportMsg('⚠ Erro ao importar: ' + e.message, 'var(--vermelho)');
+    }
+  }
+
+  function showImportMsg(text, color) {
+    msg.textContent = text;
+    msg.style.color = color;
+    msg.style.display = 'block';
+  }
+  function hideImportMsg() { msg.style.display = 'none'; }
+
+  inp.addEventListener('change', () => { if (inp.files.length) doImport(inp.files[0]); });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('over');
+    doImport(e.dataTransfer.files[0]);
   });
 })();
 
