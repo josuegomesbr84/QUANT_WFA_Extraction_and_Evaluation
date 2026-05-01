@@ -86,7 +86,7 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
-## 🐛 FASE 6 — Correções em Andamento: Equity OOS (R$)
+## 🐛 FASE 6 — Correções: Equity OOS (R$)
 
 - ✅ `analysis/metrics.py` — Adicionado `oos_rep_values` ao retorno de `compute_all_metrics` (valores usados como numerador na representatividade)
 - ✅ `output/templates/report.html.j2` — Coluna Equity OOS usa `c.oos_equity_steps` (mostra `—` se gráfico não encontrado)
@@ -95,11 +95,53 @@ Histórico completo de entregas desde o início do projeto.
 - ✅ `scraper/extractor.py` — `get_chart_data()`: 3 estratégias de acesso às instâncias ApexCharts
 - ✅ `scraper/runner.py` — Log de debug quando extração do gráfico falha (salva JSON bruto)
 - ✅ `scraper/runner.py` — `headless=False` para acompanhamento visual da execução
-- ✅ `scraper/extractor.py` — `extract_oos_via_hover()`: extração via dispatch de `MouseEvent('mousemove')` no SVG via `page.evaluate()`
-  - Abordagem: JavaScript despacha eventos diretamente no SVG (não depende do viewport)
-  - ApexCharts atualiza tooltip sincronamente — leitura imediata sem sleep
-  - Salva `resultados/debug_tooltips.txt` com tooltips brutos por step
-- 🔄 **Coluna Equity OOS (R$) ainda exibindo `—`** — extração via JS mousemove dispatch implementada, aguardando validação
+- ✅ `scraper/extractor.py` — `extract_oos_via_hover()`: extração via `scrollIntoView` + `page.mouse.move()` com leitura de tooltip
+- ✅ `scraper/extractor.py` — `extract_oos_via_svg_attrs()`: leitura direta do atributo `val` nos elementos `<path class="apexcharts-bar-area">` — abordagem mais robusta, sem depender de eventos
+- ✅ `scraper/runner.py` — Pipeline de 3 tentativas para Equity OOS: SVG attrs → Apex config JS → hover
+
+---
+
+## ⚙️ FASE 7 — Modo Teste: Seletor de Cenários
+
+- ✅ `templates/index.html` — Input numérico "Cenários:" ao lado do botão "▶ Iniciar Extração" (padrão 12, mín 1, máx 99)
+- ✅ `app.py` — Parâmetro `max_cenarios: int = Form(0)` na rota `/extrair`, repassado até `run_with_progress`
+- ✅ `scraper/runner.py` — Fatiamento de `all_labels[:max_cenarios]` antes do loop, com log de aviso
+
+---
+
+## 🚀 FASE 8 — v1.1.0: Novas Features (2026-04-30)
+
+- ✅ **Timer de execução** — contador ⏱ MM:SS na UI iniciado ao receber "Login realizado" via SSE
+  - `templates/index.html` — funções `startTimer()` / `stopTimer()`, elemento `#elapsed-timer`
+  - Para automaticamente no `done` e no `error`
+
+- ✅ **Significância como 7º critério de avaliação** — pontuação máxima: 100 → **110 pts**
+  - `scraper/extractor.py` — campo `significancia` já extraído em `get_wfm()` (coluna do WFM)
+  - `scraper/runner.py` — `wfm_row` extraído e armazenado no dict de cada cenário
+  - `analysis/metrics.py` — `compute_all_metrics()` aceita `wfm_row`, extrai e normaliza `significancia` (lowercase)
+  - `config.py` — novo critério `"significancia"` com `tipo: "categorico"` e pts por nível (Alta/Média/Baixa)
+  - `analysis/verdict.py` — helper `_score_categorico()`, score incluído em `calcular_veredicto()`
+  - `output/templates/report.html.j2` — chip "Significância" na metrics-row e score-item na scores-grid
+  - `templates/index.html` — seção editável "Significância" com 3 inputs (Alta/Média/Baixa) no painel de critérios, com persistência `localStorage` e serialização em `buildScoringConfig()`
+
+- ✅ **Botão Reiniciar Servidor (🔄)** — sem perder a URL
+  - `app.py` — endpoint `POST /admin/restart` com `os.execv()`, bloqueado se houver jobs ativos
+  - `templates/index.html` — botão fixo `right:62px`, polling automático até servidor voltar + `location.reload()`
+
+- ✅ **Card "Equity Total OOS" no relatório** — exibido quando R$ reais disponíveis
+  - `output/html_report.py` — filtro Jinja2 `fmt_currency` (formato R$ brasileiro)
+  - `output/templates/report.html.j2` — chip `{% if c.oos_equity_steps %}` com `equity_final | fmt_currency`
+
+- ✅ **Veredicto Global reformulado** — de string simples para dict rico
+  - `analysis/verdict.py` — `veredicto_global()` retorna `{veredicto, pct_aprovados, contagem, comentario}`
+  - `analysis/verdict.py` — `_gerar_comentario()`: agrupa cenários por OOS em meses, identifica melhor configuração
+  - `scraper/runner.py` — push `"done"` envia dict completo (compatível com código existente)
+  - `output/templates/report.html.j2` — exibe `pct_aprovados` e `comentario` no bloco veredicto-global
+  - `templates/index.html` — `renderResults()` adaptado para dict, exibe % WFCs aprovados e insight 💡
+
+- ✅ **README atualizado** — changelog v1.0.0/v1.1.0, tabela de scoring com 7 critérios/110 pts
+
+- ✅ **Commit v1.1.0** — `git commit 4093761`
 
 ---
 
@@ -107,9 +149,8 @@ Histórico completo de entregas desde o início do projeto.
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS
 - ⬜ Remover código de debug (`debug_tooltips.txt`, `debug_chart_data_cenario_0.json`) após validação
-- ⬜ Validar cálculo de representatividade com valores R$ reais (atualmente usa CAGR/AVG DD como fallback)
+- ⬜ Validar cálculo de representatividade com valores R$ reais (atualmente usa CAGR/AVG DD como fallback quando extração SVG falha)
 - ⬜ Testar extração end-to-end com múltiplos arquivos `.wfa` (diferentes números de steps/cenários)
-- ⬜ Histórico de extrações: listar relatórios anteriores na UI
 - ⬜ Campo "Estratégia" com persistência entre sessões
 
 ---
@@ -118,17 +159,19 @@ Histórico completo de entregas desde o início do projeto.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `app.py` | Servidor FastAPI + SSE + rotas |
-| `config.py` | Parâmetros globais, scoring, timeouts |
+| `app.py` | Servidor FastAPI + SSE + rotas (inclui `/admin/restart`) |
+| `config.py` | Parâmetros globais, scoring (7 critérios), timeouts |
 | `main.py` | Entry point CLI |
 | `WFA_Extractor.bat` | Inicialização com duplo clique |
+| `BACKLOG.md` | Histórico de entregas e pendências |
+| `README.md` | Documentação do projeto (changelog, scoring, guia dev) |
 | `scraper/auth.py` | Login BotSpot |
 | `scraper/upload.py` | Upload `.wfa` |
-| `scraper/extractor.py` | Extração DOM + ApexCharts + hover |
-| `scraper/runner.py` | Orquestração completa |
-| `analysis/metrics.py` | Cálculo de todas as métricas |
-| `analysis/verdict.py` | Scoring e veredicto |
+| `scraper/extractor.py` | Extração DOM + ApexCharts + SVG attrs + hover |
+| `scraper/runner.py` | Orquestração completa + pipeline Equity OOS |
+| `analysis/metrics.py` | Cálculo de todas as métricas (incl. significância) |
+| `analysis/verdict.py` | Scoring, veredicto por cenário e veredicto global com insight |
 | `output/json_writer.py` | Exportação JSON |
-| `output/html_report.py` | Geração do relatório HTML |
+| `output/html_report.py` | Geração do relatório HTML (filtros Jinja2) |
 | `output/templates/report.html.j2` | Template do relatório |
-| `templates/index.html` | Interface web |
+| `templates/index.html` | Interface web (timer, restart, critérios editáveis) |
