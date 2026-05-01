@@ -46,7 +46,7 @@ Histórico completo de entregas desde o início do projeto.
 - ✅ `templates/index.html` — Tema escuro (dark mode) com toggle 🌙/☀️ e persistência via `localStorage`
 - ✅ `WFA_Extractor.bat` — Arquivo batch para iniciar o servidor com duplo clique
 - ✅ `templates/index.html` — Painel "⚙ Critérios de Avaliação" colapsável com campos editáveis
-  - 6 critérios editáveis: Representatividade, Consecutivos, WFE%, Z-Score, WFE Médio, WFE s/ Outliers
+  - 7 critérios editáveis: Representatividade, Consecutivos, WFE%, Z-Score, WFE Médio, WFE s/ Outliers, Significância
   - Thresholds de veredicto editáveis (APROVADO / ATENÇÃO)
   - Persistência dos valores editados via `localStorage`
 - ✅ `app.py` — Recebimento de `scoring_config` e `veredicto_thresholds` via FormData (JSON)
@@ -160,6 +160,24 @@ Histórico completo de entregas desde o início do projeto.
 - ✅ **`config.py` — alias `"média"` removido** do `SCORING["significancia"]["pts"]`; mantido apenas `"media"` (sem acento) para consistência com a normalização do `metrics.py`
 
 - ✅ **README atualizado** — changelog v1.1.1 adicionado
+
+---
+
+## ⚙️ FASE 10 — v1.1.2: Ajuste dos Defaults dos Critérios de Avaliação (2026-05-01)
+
+- ✅ **`config.py` — defaults de scoring alinhados ao painel de avaliação**
+  - `% Steps WFE Positivo`: 70/65/50/49 com pontuações `20/10/5/-20`
+  - `Z-Score`: 3/2.7/2.5/2.49 com pontuações `15/7/5/-15`
+  - `WFE Médio`: 70/65/50/49.9 com pontuações `13/7/4/-13`
+  - `WFE s/ Outliers`: 70/65/50/49.9 com pontuações `12/10/7/-12`
+  - `Steps Negativos Consecutivos`: 1 par longo / ano negativo passa de `4` para **`-20`**
+
+- ✅ **`templates/index.html` — defaults visuais atualizados para bater com a imagem de referência**
+  - Campos de pontuação editáveis aceitam penalidades negativas (`-20`, `-15`, `-13`, `-12`)
+  - Campos numéricos relevantes usam `step="any"` para aceitar casas decimais como `2.7`, `2.49` e `49.9`
+  - Chave de persistência dos critérios alterada para `wfa-criterios-v2`, evitando reaproveitar valores antigos do navegador
+
+- ✅ **README atualizado** — changelog v1.1.2 e tabelas de scoring revisadas
 
 ---
 

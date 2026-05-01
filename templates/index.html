@@ -384,10 +384,10 @@
               <div class="crit-section-title">Thresholds de Veredicto</div>
               <div class="crit-thresh-row">
                 <strong>APROVADO</strong> ≥
-                <input type="number" id="crit-th-aprovado" class="crit-num" value="75" min="0" max="100"> pts
+                <input type="number" id="crit-th-aprovado" class="crit-num" value="75" min="0" max="100" step="any"> pts
                 &nbsp;&nbsp;
                 <strong>ATENÇÃO</strong> ≥
-                <input type="number" id="crit-th-atencao" class="crit-num" value="50" min="0" max="100"> pts
+                <input type="number" id="crit-th-atencao" class="crit-num" value="50" min="0" max="100" step="any"> pts
               </div>
             </div>
 
@@ -396,16 +396,16 @@
               <div class="crit-section-title">Representatividade — Step máx. / Equity Final <span class="crit-max">(máx: 20 pts)</span></div>
               <div class="crit-faixas">
                 <div class="crit-faixa">
-                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f1-max" class="crit-num" value="25" min="0" max="100" step="1">%</span>
-                  <input type="number" id="rep-f1-pts" class="crit-num" value="20"> pts
+                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f1-max" class="crit-num" value="25" min="0" max="100" step="any">%</span>
+                  <input type="number" id="rep-f1-pts" class="crit-num" value="20" step="any"> pts
                 </div>
                 <div class="crit-faixa">
-                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f2-max" class="crit-num" value="30" min="0" max="100" step="1">%</span>
-                  <input type="number" id="rep-f2-pts" class="crit-num" value="8"> pts
+                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f2-max" class="crit-num" value="30" min="0" max="100" step="any">%</span>
+                  <input type="number" id="rep-f2-pts" class="crit-num" value="8" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">Máx. rep. &gt; Faixa 2 (penalidade)</span>
-                  <input type="number" id="rep-f3-pts" class="crit-num" value="-20"> pts
+                  <input type="number" id="rep-f3-pts" class="crit-num" value="-20" step="any"> pts
                 </div>
               </div>
             </div>
@@ -416,15 +416,15 @@
               <div class="crit-faixas">
                 <div class="crit-faixa">
                   <span class="faixa-label">Nenhum par negativo</span>
-                  <input type="number" id="crit-consec-0" class="crit-num" value="20" min="0"> pts
+                  <input type="number" id="crit-consec-0" class="crit-num" value="20" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">1 par curto (&lt;12 meses)</span>
-                  <input type="number" id="crit-consec-1" class="crit-num" value="12" min="0"> pts
+                  <input type="number" id="crit-consec-1" class="crit-num" value="12" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">1 par longo (≥12 meses / ano neg.)</span>
-                  <input type="number" id="crit-consec-2" class="crit-num" value="4" min="0"> pts
+                  <input type="number" id="crit-consec-2" class="crit-num" value="-20" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">2+ pares negativos</span>
@@ -442,10 +442,10 @@
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-pct-min-0" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-0" class="crit-num" value="20" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-1" class="crit-num" value="65" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-1" class="crit-num" value="17" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-2" class="crit-num" value="50" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-2" class="crit-num" value="13" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-3" class="crit-num" value="35" min="0" max="100"></td><td><input type="number" id="crit-pct-pts-3" class="crit-num" value="6" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-0" class="crit-num" value="20" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-1" class="crit-num" value="10" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-2" class="crit-num" value="5" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-3" class="crit-num" value="49" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-3" class="crit-num" value="-20" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -457,10 +457,10 @@
                 <table class="crit-table">
                   <thead><tr><th>Mínimo</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-zs-min-0" class="crit-num" value="5" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-0" class="crit-num" value="15" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-zs-min-1" class="crit-num" value="4" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-1" class="crit-num" value="12" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-zs-min-2" class="crit-num" value="3" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-2" class="crit-num" value="9" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-zs-min-3" class="crit-num" value="2" min="0" step="0.1"></td><td><input type="number" id="crit-zs-pts-3" class="crit-num" value="4" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-0" class="crit-num" value="3" min="0" step="any"></td><td><input type="number" id="crit-zs-pts-0" class="crit-num" value="15" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-1" class="crit-num" value="2.7" min="0" step="any"></td><td><input type="number" id="crit-zs-pts-1" class="crit-num" value="7" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-2" class="crit-num" value="2.5" min="0" step="any"></td><td><input type="number" id="crit-zs-pts-2" class="crit-num" value="5" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-zs-min-3" class="crit-num" value="2.49" min="0" step="any"></td><td><input type="number" id="crit-zs-pts-3" class="crit-num" value="-15" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -472,10 +472,10 @@
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-wfem-min-0" class="crit-num" value="90" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-0" class="crit-num" value="13" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-1" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-1" class="crit-num" value="11" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-2" class="crit-num" value="70" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-2" class="crit-num" value="8" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-3" class="crit-num" value="60" min="0" max="100"></td><td><input type="number" id="crit-wfem-pts-3" class="crit-num" value="4" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-0" class="crit-num" value="13" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-1" class="crit-num" value="7" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-2" class="crit-num" value="4" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-3" class="crit-num" value="-13" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -487,10 +487,10 @@
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-wfeo-min-0" class="crit-num" value="90" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-0" class="crit-num" value="12" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-1" class="crit-num" value="80" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-1" class="crit-num" value="10" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-2" class="crit-num" value="70" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-2" class="crit-num" value="7" min="0"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-3" class="crit-num" value="60" min="0" max="100"></td><td><input type="number" id="crit-wfeo-pts-3" class="crit-num" value="3" min="0"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-0" class="crit-num" value="12" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-1" class="crit-num" value="10" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-2" class="crit-num" value="7" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-3" class="crit-num" value="-12" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -504,9 +504,9 @@
               <table class="crit-table">
                 <thead><tr><th>Nível</th><th>Pontos</th></tr></thead>
                 <tbody>
-                  <tr><td>Alta</td><td><input type="number" id="crit-sig-alta" class="crit-num" value="10"></td></tr>
-                  <tr><td>Média</td><td><input type="number" id="crit-sig-media" class="crit-num" value="5"></td></tr>
-                  <tr><td>Baixa</td><td><input type="number" id="crit-sig-baixa" class="crit-num" value="-5"></td></tr>
+                  <tr><td>Alta</td><td><input type="number" id="crit-sig-alta" class="crit-num" value="10" step="any"></td></tr>
+                  <tr><td>Média</td><td><input type="number" id="crit-sig-media" class="crit-num" value="5" step="any"></td></tr>
+                  <tr><td>Baixa</td><td><input type="number" id="crit-sig-baixa" class="crit-num" value="-5" step="any"></td></tr>
                 </tbody>
               </table>
             </div>
@@ -821,7 +821,7 @@ document.getElementById('crit-toggle').addEventListener('click', function () {
 });
 
 // ─── Persistência dos critérios (localStorage) ────────────────────────────────
-const CRIT_KEY = 'wfa-criterios';
+const CRIT_KEY = 'wfa-criterios-v2';
 
 // IDs de todos os campos editáveis dos critérios
 const CRIT_IDS = [

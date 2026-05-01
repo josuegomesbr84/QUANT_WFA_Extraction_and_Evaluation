@@ -6,6 +6,12 @@
 
 ## Changelog
 
+### v1.1.2 — 2026-05-01
+- **Critérios padrão atualizados conforme painel de avaliação** — faixas de `% Steps WFE Positivo`, `Z-Score`, `WFE Médio`, `WFE s/ Outliers` e `Steps Negativos Consecutivos` alinhadas aos novos defaults
+- **Penalidades negativas liberadas na UI** — campos de pontuação editáveis aceitam valores como `-20`, `-15`, `-13` e `-12`
+- **Casas decimais nos thresholds/faixas** — inputs numéricos usam `step="any"` onde necessário, incluindo `2.7`, `2.49` e `49.9`
+- `localStorage` dos critérios versionado para `wfa-criterios-v2`, evitando reaproveitar defaults antigos salvos no navegador
+
 ### v1.1.1 — 2026-05-01
 - **Correção crítica: botão "Iniciar Extração" travado** — chave `'média':` sem aspas no JS causava erro de parse silencioso no script inteiro; o submit handler nunca registrava e o botão permanecia desabilitado para sempre
 - `app.py` → header `Cache-Control: no-store` na rota `/` para garantir que o browser sempre busque o HTML mais recente
@@ -62,7 +68,7 @@ Após rodar uma WFA no BotSpot, o trader precisa navegar por até 12 cenários d
 2. Envia o arquivo `.wfa` e aguarda o processamento
 3. Navega pelos 12 cenários automaticamente
 4. Extrai todos os dados relevantes de cada cenário
-5. Calcula 6 critérios de avaliação com pontuação 0–100
+5. Calcula 7 critérios de avaliação com pontuação máxima de 110 pontos
 6. Emite um veredicto (**APROVADO / ATENÇÃO / REPROVADO**) por cenário e global
 7. Gera relatórios HTML e JSON prontos para revisão
 
@@ -147,7 +153,7 @@ python app.py
 - Pode informar manualmente clicando em "🔑 Informar credenciais manualmente"
 
 #### Critérios de Avaliação
-- Painel colapsável com todos os 6 critérios e seus pesos
+- Painel colapsável com todos os 7 critérios e seus pesos
 - Edite os valores para personalizar o rigor da avaliação
 - Clique em **💾 Salvar como padrão** para persistir suas preferências no navegador
 - Os valores padrão seguem as melhores práticas de avaliação WFA
@@ -181,37 +187,53 @@ Cada cenário recebe uma pontuação de **0 a 110 pontos**, distribuída em 7 cr
 **Representatividade**
 | Situação | Pontos |
 |---|---|
-| Nenhum step acima de 25% | 20 |
-| 1 step acima de 25% | 8 |
-| 2 ou mais steps acima de 25% | 0 |
+| Máx. rep. ≤ 25% | 20 |
+| Máx. rep. ≤ 30% | 8 |
+| Máx. rep. > 30% | −20 |
 
 **Steps Negativos Consecutivos**
 | Situação | Pontos |
 |---|---|
 | Nenhum par negativo | 20 |
 | 1 par curto (< 12 meses) | 12 |
-| 1 par longo (≥ 12 meses / ano negativo) | 4 |
+| 1 par longo (≥ 12 meses / ano negativo) | −20 |
 | 2 ou mais pares negativos | 0 |
 
 **% Steps WFE Positivo**
 | Mínimo | Pontos |
 |---|---|
-| ≥ 80% | 20 |
-| ≥ 65% | 17 |
-| ≥ 50% | 13 |
-| ≥ 35% | 6 |
-| < 35% | 0 |
+| ≥ 70% | 20 |
+| ≥ 65% | 10 |
+| ≥ 50% | 5 |
+| ≥ 49% | −20 |
+| < 49% | 0 |
 
 **Z-Score**
 | Mínimo | Pontos |
 |---|---|
-| ≥ 5,0 | 15 |
-| ≥ 4,0 | 12 |
-| ≥ 3,0 | 9 |
-| ≥ 2,0 | 4 |
-| < 2,0 | 0 |
+| ≥ 3,0 | 15 |
+| ≥ 2,7 | 7 |
+| ≥ 2,5 | 5 |
+| ≥ 2,49 | −15 |
+| < 2,49 | 0 |
 
-**WFE Médio e WFE sem Outliers** — escala similar (90%=máx, decrescendo até 0).
+**WFE Médio**
+| Mínimo | Pontos |
+|---|---|
+| ≥ 70% | 13 |
+| ≥ 65% | 7 |
+| ≥ 50% | 4 |
+| ≥ 49,9% | −13 |
+| < 49,9% | 0 |
+
+**WFE sem Outliers**
+| Mínimo | Pontos |
+|---|---|
+| ≥ 70% | 12 |
+| ≥ 65% | 10 |
+| ≥ 50% | 7 |
+| ≥ 49,9% | −12 |
+| < 49,9% | 0 |
 
 **Significância WFM**
 | Nível | Pontos |
