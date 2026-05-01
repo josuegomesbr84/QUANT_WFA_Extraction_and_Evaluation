@@ -6,6 +6,13 @@
 
 ## Changelog
 
+### v1.1.1 — 2026-05-01
+- **Correção crítica: botão "Iniciar Extração" travado** — chave `'média':` sem aspas no JS causava erro de parse silencioso no script inteiro; o submit handler nunca registrava e o botão permanecia desabilitado para sempre
+- `app.py` → header `Cache-Control: no-store` na rota `/` para garantir que o browser sempre busque o HTML mais recente
+- `templates/index.html` → removido atributo `disabled` do botão; botão agora sempre habilitado com validação de arquivo no submit handler (mensagem amigável se clicar sem arquivo)
+- `analysis/metrics.py` → normalização de "Média" → "media" (remoção de acento) antes do lookup no dict de scoring
+- `config.py` → alias `"média"` removido; mantido apenas `"media"` (sem acento) para consistência
+
 ### v1.1.0 — 2026-04-30
 - **Critério Significância** adicionado ao sistema de scoring (Alta = +10 pts, Média = +5, Baixa = −5) — pontuação máxima passa de 100 → 110 pts
 - **Timer de execução** na UI: contador ⏱ MM:SS iniciado automaticamente após o login

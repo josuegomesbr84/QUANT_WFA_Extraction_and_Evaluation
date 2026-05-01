@@ -76,8 +76,7 @@ SCORING = {
         "tipo": "categorico",
         "pts": {
             "alta":  10,
-            "média": 5,
-            "media": 5,    # alias sem acento
+            "media": 5,    # normalizado sem acento (Média → media)
             "baixa": -5,
         },
         "default": 0,      # valor não reconhecido ou ausente

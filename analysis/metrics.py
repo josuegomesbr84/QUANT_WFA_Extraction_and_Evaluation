@@ -168,7 +168,8 @@ def compute_all_metrics(
 
     # Significância categórica do WFM (Alta / Média / Baixa)
     sig_raw = (wfm_row or {}).get("significancia", "")
-    significancia = sig_raw.strip().lower()   # "alta", "média"/"media", "baixa" ou ""
+    # Normaliza para lowercase sem acento: "Média" → "media", "Alta" → "alta"
+    significancia = sig_raw.strip().lower().replace("é", "e").replace("ê", "e")
 
     return {
         "n_steps": n_steps,

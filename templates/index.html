@@ -524,7 +524,7 @@
         </div><!-- /crit-panel -->
 
         <div style="display:flex;align-items:center;gap:16px;margin-top:16px;">
-          <button type="submit" class="btn-run" id="btn-run" disabled style="margin-top:0;flex:1">
+          <button type="submit" class="btn-run" id="btn-run" style="margin-top:0;flex:1">
             ▶ Iniciar Extração
           </button>
           <label style="font-size:13px;color:var(--cinza);white-space:nowrap;display:flex;align-items:center;gap:6px;">
@@ -973,12 +973,11 @@ function buildScoringConfig() {
       max: 10,
       tipo: 'categorico',
       pts: {
-        alta:  numVal('crit-sig-alta'),
-        média: numVal('crit-sig-media'),
-        media: numVal('crit-sig-media'),
-        baixa: numVal('crit-sig-baixa'),
+        alta:    numVal('crit-sig-alta'),
+        media:   numVal('crit-sig-media'),
+        baixa:   numVal('crit-sig-baixa'),
       },
-      default: 0,
+      def_pts: 0,
     },
   };
 }
@@ -1057,6 +1056,14 @@ document.getElementById('form-wfa').addEventListener('submit', async e => {
 
   const fd = new FormData();
   const file = dropzone.droppedFile || fileInput.files[0];
+
+  if (!file) {
+    showError('Selecione um arquivo .wfa antes de iniciar a extração.');
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Iniciar Extração';
+    return;
+  }
+
   fd.append('wfa_file',   file);
   fd.append('email',     document.getElementById('f-email').value);
   fd.append('password',  document.getElementById('f-password').value);

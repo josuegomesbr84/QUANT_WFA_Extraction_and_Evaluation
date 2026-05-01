@@ -52,7 +52,10 @@ app.mount("/resultados", StaticFiles(directory="resultados"), name="resultados")
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return HTMLResponse(Path("templates/index.html").read_text(encoding="utf-8"))
+    return HTMLResponse(
+        Path("templates/index.html").read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
 
 
 @app.post("/extrair")

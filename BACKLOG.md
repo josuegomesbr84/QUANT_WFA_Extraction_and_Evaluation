@@ -145,6 +145,24 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
+## 🐛 FASE 9 — v1.1.1: Correção Crítica do Botão "Iniciar Extração" (2026-05-01)
+
+- ✅ **Correção JS: chave `'média':` causava erro de parse silencioso** — todo o `<script>` falhava em browsers (especialmente Edge) que rejeitam caracteres Unicode não-ASCII em nomes de propriedade sem aspas de objeto literal
+  - `templates/index.html` — `buildScoringConfig()`: `'média':` substituído por `media:` (ASCII puro); `'default':` substituído por `def_pts:` (evita palavra reservada)
+  - Impacto: `form.addEventListener('submit', ...)` nunca era registrado → botão permanecia desabilitado para sempre mesmo após seleção de arquivo
+
+- ✅ **`app.py` — header `Cache-Control: no-store, no-cache, must-revalidate`** na rota `GET /` para garantir que o browser sempre busque o HTML mais recente do servidor (evita servir versão quebrada do cache mesmo após fix)
+
+- ✅ **`templates/index.html` — removido atributo `disabled` do botão `#btn-run`** — botão agora sempre habilitado; validação de arquivo movida para o submit handler com mensagem de erro amigável ("Selecione um arquivo .wfa antes de iniciar a extração.") em vez de depender do evento `change` para habilitar o botão
+
+- ✅ **`analysis/metrics.py` — normalização de significância**: `"Média"` → `"media"` (remoção de acento com `.replace("é", "e").replace("ê", "e")`) antes do lookup no dict de scoring
+
+- ✅ **`config.py` — alias `"média"` removido** do `SCORING["significancia"]["pts"]`; mantido apenas `"media"` (sem acento) para consistência com a normalização do `metrics.py`
+
+- ✅ **README atualizado** — changelog v1.1.1 adicionado
+
+---
+
 ## 📋 PENDENTE / BACKLOG FUTURO
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS
