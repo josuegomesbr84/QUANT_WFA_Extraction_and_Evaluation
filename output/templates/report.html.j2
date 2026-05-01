@@ -230,24 +230,24 @@
           <div class="scores-grid">
             <div class="score-item">
               <div class="score-name">Representatividade</div>
-              <div class="score-val" style="color:{% if c.veredicto.scores.representatividade >= 16 %}var(--verde){% elif c.veredicto.scores.representatividade >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+              <div class="score-val" style="color:{% if c.veredicto.scores.representatividade >= 12 %}var(--verde){% elif c.veredicto.scores.representatividade >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
                 {{ c.veredicto.scores.representatividade }}
               </div>
-              <div class="score-max">/ 20 pts</div>
+              <div class="score-max">/ 15 pts</div>
             </div>
             <div class="score-item">
               <div class="score-name">Consecutivos Negativos</div>
-              <div class="score-val" style="color:{% if c.veredicto.scores.consecutivos_negativos >= 16 %}var(--verde){% elif c.veredicto.scores.consecutivos_negativos >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+              <div class="score-val" style="color:{% if c.veredicto.scores.consecutivos_negativos >= 12 %}var(--verde){% elif c.veredicto.scores.consecutivos_negativos >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
                 {{ c.veredicto.scores.consecutivos_negativos }}
               </div>
-              <div class="score-max">/ 20 pts</div>
+              <div class="score-max">/ 15 pts</div>
             </div>
             <div class="score-item">
               <div class="score-name">% Steps WFE Positivo</div>
-              <div class="score-val" style="color:{% if c.veredicto.scores.pct_steps_positivos >= 16 %}var(--verde){% elif c.veredicto.scores.pct_steps_positivos >= 8 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+              <div class="score-val" style="color:{% if c.veredicto.scores.pct_steps_positivos >= 12 %}var(--verde){% elif c.veredicto.scores.pct_steps_positivos >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
                 {{ c.veredicto.scores.pct_steps_positivos }}
               </div>
-              <div class="score-max">/ 20 pts</div>
+              <div class="score-max">/ 15 pts</div>
             </div>
             <div class="score-item">
               <div class="score-name">Z-Score</div>
@@ -258,17 +258,17 @@
             </div>
             <div class="score-item">
               <div class="score-name">WFE Médio</div>
-              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_medio >= 10 %}var(--verde){% elif c.veredicto.scores.wfe_medio >= 5 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_medio >= 12 %}var(--verde){% elif c.veredicto.scores.wfe_medio >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
                 {{ c.veredicto.scores.wfe_medio }}
               </div>
-              <div class="score-max">/ 13 pts</div>
+              <div class="score-max">/ 15 pts</div>
             </div>
             <div class="score-item">
               <div class="score-name">WFE s/ Outliers</div>
-              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_sem_outliers >= 9 %}var(--verde){% elif c.veredicto.scores.wfe_sem_outliers >= 5 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
+              <div class="score-val" style="color:{% if c.veredicto.scores.wfe_sem_outliers >= 12 %}var(--verde){% elif c.veredicto.scores.wfe_sem_outliers >= 6 %}var(--amarelo){% else %}var(--vermelho){% endif %}">
                 {{ c.veredicto.scores.wfe_sem_outliers }}
               </div>
-              <div class="score-max">/ 12 pts</div>
+              <div class="score-max">/ 15 pts</div>
             </div>
             {% if c.veredicto.scores.significancia is defined %}
             <div class="score-item">

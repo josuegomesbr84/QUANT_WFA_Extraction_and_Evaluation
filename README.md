@@ -6,6 +6,11 @@
 
 ## Changelog
 
+### v1.1.3 — 2026-05-01
+- **Pontuação máxima reequilibrada para 100 pts** — seis critérios principais passam a valer até 15 pts cada, e Significância permanece com até 10 pts
+- Defaults da UI e do backend alinhados ao novo total: `15 + 15 + 15 + 15 + 15 + 15 + 10 = 100`
+- `localStorage` dos critérios versionado para `wfa-criterios-v3`, evitando reaproveitar pesos antigos salvos no navegador
+
 ### v1.1.2 — 2026-05-01
 - **Critérios padrão atualizados conforme painel de avaliação** — faixas de `% Steps WFE Positivo`, `Z-Score`, `WFE Médio`, `WFE s/ Outliers` e `Steps Negativos Consecutivos` alinhadas aos novos defaults
 - **Penalidades negativas liberadas na UI** — campos de pontuação editáveis aceitam valores como `-20`, `-15`, `-13` e `-12`
@@ -68,7 +73,7 @@ Após rodar uma WFA no BotSpot, o trader precisa navegar por até 12 cenários d
 2. Envia o arquivo `.wfa` e aguarda o processamento
 3. Navega pelos 12 cenários automaticamente
 4. Extrai todos os dados relevantes de cada cenário
-5. Calcula 7 critérios de avaliação com pontuação máxima de 110 pontos
+5. Calcula 7 critérios de avaliação com pontuação máxima de 100 pontos
 6. Emite um veredicto (**APROVADO / ATENÇÃO / REPROVADO**) por cenário e global
 7. Gera relatórios HTML e JSON prontos para revisão
 
@@ -170,16 +175,16 @@ python app.py
 
 ### Sistema de Pontuação
 
-Cada cenário recebe uma pontuação de **0 a 110 pontos**, distribuída em 7 critérios:
+Cada cenário recebe uma pontuação de **0 a 100 pontos**, distribuída em 7 critérios:
 
 | Critério | Peso Máx | O que mede |
 |---|---|---|
-| Representatividade por step | 20 pts | Se algum step isolado contribui mais de 25% do equity total — sinal de resultado concentrado em poucos trades |
-| Steps negativos consecutivos | 20 pts | Sequências de períodos OOS negativos — quanto maior e mais longa, pior |
-| % Steps com WFE positivo | 20 pts | Proporção de steps onde a estratégia foi lucrativa fora da amostra |
+| Representatividade por step | 15 pts | Se algum step isolado contribui mais de 25% do equity total — sinal de resultado concentrado em poucos trades |
+| Steps negativos consecutivos | 15 pts | Sequências de períodos OOS negativos — quanto maior e mais longa, pior |
+| % Steps com WFE positivo | 15 pts | Proporção de steps onde a estratégia foi lucrativa fora da amostra |
 | Z-Score | 15 pts | Significância estatística dos resultados (quão improvável seria o desempenho por acaso) |
-| WFE Médio | 13 pts | Média do Walk Forward Efficiency — relação entre lucro IS e OOS |
-| WFE sem outliers (IQR) | 12 pts | Mesma média, porém com outliers removidos — mede consistência |
+| WFE Médio | 15 pts | Média do Walk Forward Efficiency — relação entre lucro IS e OOS |
+| WFE sem outliers (IQR) | 15 pts | Mesma média, porém com outliers removidos — mede consistência |
 | **Significância WFM** | **10 pts** | Nível de significância categórico exibido na Walk Forward Matrix (Alta / Média / Baixa) |
 
 #### Faixas de pontuação padrão
@@ -187,25 +192,25 @@ Cada cenário recebe uma pontuação de **0 a 110 pontos**, distribuída em 7 cr
 **Representatividade**
 | Situação | Pontos |
 |---|---|
-| Máx. rep. ≤ 25% | 20 |
-| Máx. rep. ≤ 30% | 8 |
-| Máx. rep. > 30% | −20 |
+| Máx. rep. ≤ 25% | 15 |
+| Máx. rep. ≤ 30% | 6 |
+| Máx. rep. > 30% | −15 |
 
 **Steps Negativos Consecutivos**
 | Situação | Pontos |
 |---|---|
-| Nenhum par negativo | 20 |
-| 1 par curto (< 12 meses) | 12 |
-| 1 par longo (≥ 12 meses / ano negativo) | −20 |
+| Nenhum par negativo | 15 |
+| 1 par curto (< 12 meses) | 9 |
+| 1 par longo (≥ 12 meses / ano negativo) | −15 |
 | 2 ou mais pares negativos | 0 |
 
 **% Steps WFE Positivo**
 | Mínimo | Pontos |
 |---|---|
-| ≥ 70% | 20 |
-| ≥ 65% | 10 |
-| ≥ 50% | 5 |
-| ≥ 49% | −20 |
+| ≥ 70% | 15 |
+| ≥ 65% | 8 |
+| ≥ 50% | 4 |
+| ≥ 49% | −15 |
 | < 49% | 0 |
 
 **Z-Score**
@@ -220,19 +225,19 @@ Cada cenário recebe uma pontuação de **0 a 110 pontos**, distribuída em 7 cr
 **WFE Médio**
 | Mínimo | Pontos |
 |---|---|
-| ≥ 70% | 13 |
-| ≥ 65% | 7 |
-| ≥ 50% | 4 |
-| ≥ 49,9% | −13 |
+| ≥ 70% | 15 |
+| ≥ 65% | 8 |
+| ≥ 50% | 5 |
+| ≥ 49,9% | −15 |
 | < 49,9% | 0 |
 
 **WFE sem Outliers**
 | Mínimo | Pontos |
 |---|---|
-| ≥ 70% | 12 |
-| ≥ 65% | 10 |
-| ≥ 50% | 7 |
-| ≥ 49,9% | −12 |
+| ≥ 70% | 15 |
+| ≥ 65% | 12 |
+| ≥ 50% | 9 |
+| ≥ 49,9% | −15 |
 | < 49,9% | 0 |
 
 **Significância WFM**
@@ -489,14 +494,15 @@ Retorna:
 ```python
 {
     "scores": {
-        "representatividade": 20,
-        "consecutivos_negativos": 12,
-        "pct_steps_positivos": 17,
-        "zscore": 9,
+        "representatividade": 15,
+        "consecutivos_negativos": 9,
+        "pct_steps_positivos": 8,
+        "zscore": 7,
         "wfe_medio": 8,
-        "wfe_sem_outliers": 7,
+        "wfe_sem_outliers": 12,
+        "significancia": 10,
     },
-    "total": 73,
+    "total": 69,
     "veredicto": "ATENÇÃO"
 }
 ```

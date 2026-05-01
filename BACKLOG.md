@@ -181,6 +181,26 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
+## ⚖️ FASE 11 — v1.1.3: Pontuação Máxima Reequilibrada para 100 pts (2026-05-01)
+
+- ✅ **`config.py` — pesos reequilibrados para total máximo de 100 pts**
+  - Representatividade, Consecutivos Negativos, % WFE Positivo, Z-Score, WFE Médio e WFE s/ Outliers passam a valer até **15 pts** cada
+  - Significância permanece valendo até **10 pts**
+  - Total máximo: `15 + 15 + 15 + 15 + 15 + 15 + 10 = 100`
+
+- ✅ **`templates/index.html` — painel de critérios atualizado**
+  - Labels de máximo e defaults dos inputs ajustados para a nova escala
+  - Barras de detalhamento dos scores por critério usam os novos máximos
+  - Chave de persistência alterada para `wfa-criterios-v3`, evitando reaproveitar pesos antigos salvos no navegador
+
+- ✅ **`output/templates/report.html.j2` — relatório HTML alinhado à escala de 100 pts**
+  - Máximos exibidos nos cards de score atualizados para `/ 15 pts`
+  - Cores dos scores individuais recalibradas para a nova escala
+
+- ✅ **README atualizado** — changelog v1.1.3 e tabelas de scoring revisadas para 100 pts
+
+---
+
 ## 📋 PENDENTE / BACKLOG FUTURO
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS

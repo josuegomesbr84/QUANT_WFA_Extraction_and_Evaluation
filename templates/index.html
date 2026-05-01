@@ -393,38 +393,38 @@
 
             <!-- Representatividade -->
             <div class="crit-section">
-              <div class="crit-section-title">Representatividade — Step máx. / Equity Final <span class="crit-max">(máx: 20 pts)</span></div>
+              <div class="crit-section-title">Representatividade — Step máx. / Equity Final <span class="crit-max">(máx: 15 pts)</span></div>
               <div class="crit-faixas">
                 <div class="crit-faixa">
                   <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f1-max" class="crit-num" value="25" min="0" max="100" step="any">%</span>
-                  <input type="number" id="rep-f1-pts" class="crit-num" value="20" step="any"> pts
+                  <input type="number" id="rep-f1-pts" class="crit-num" value="15" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f2-max" class="crit-num" value="30" min="0" max="100" step="any">%</span>
-                  <input type="number" id="rep-f2-pts" class="crit-num" value="8" step="any"> pts
+                  <input type="number" id="rep-f2-pts" class="crit-num" value="6" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">Máx. rep. &gt; Faixa 2 (penalidade)</span>
-                  <input type="number" id="rep-f3-pts" class="crit-num" value="-20" step="any"> pts
+                  <input type="number" id="rep-f3-pts" class="crit-num" value="-15" step="any"> pts
                 </div>
               </div>
             </div>
 
             <!-- Consecutivos Negativos -->
             <div class="crit-section">
-              <div class="crit-section-title">Steps Negativos Consecutivos <span class="crit-max">(máx: 20 pts)</span></div>
+              <div class="crit-section-title">Steps Negativos Consecutivos <span class="crit-max">(máx: 15 pts)</span></div>
               <div class="crit-faixas">
                 <div class="crit-faixa">
                   <span class="faixa-label">Nenhum par negativo</span>
-                  <input type="number" id="crit-consec-0" class="crit-num" value="20" step="any"> pts
+                  <input type="number" id="crit-consec-0" class="crit-num" value="15" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">1 par curto (&lt;12 meses)</span>
-                  <input type="number" id="crit-consec-1" class="crit-num" value="12" step="any"> pts
+                  <input type="number" id="crit-consec-1" class="crit-num" value="9" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">1 par longo (≥12 meses / ano neg.)</span>
-                  <input type="number" id="crit-consec-2" class="crit-num" value="-20" step="any"> pts
+                  <input type="number" id="crit-consec-2" class="crit-num" value="-15" step="any"> pts
                 </div>
                 <div class="crit-faixa">
                   <span class="faixa-label">2+ pares negativos</span>
@@ -438,14 +438,14 @@
 
               <!-- % Steps WFE Positivo -->
               <div class="crit-section">
-                <div class="crit-section-title">% Steps WFE Positivo <span class="crit-max">(máx: 20 pts)</span></div>
+                <div class="crit-section-title">% Steps WFE Positivo <span class="crit-max">(máx: 15 pts)</span></div>
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-pct-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-0" class="crit-num" value="20" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-1" class="crit-num" value="10" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-2" class="crit-num" value="5" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-pct-min-3" class="crit-num" value="49" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-3" class="crit-num" value="-20" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-0" class="crit-num" value="15" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-1" class="crit-num" value="8" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-2" class="crit-num" value="4" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-pct-min-3" class="crit-num" value="49" min="0" max="100" step="any"></td><td><input type="number" id="crit-pct-pts-3" class="crit-num" value="-15" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -468,14 +468,14 @@
 
               <!-- WFE Médio -->
               <div class="crit-section">
-                <div class="crit-section-title">WFE Médio <span class="crit-max">(máx: 13 pts)</span></div>
+                <div class="crit-section-title">WFE Médio <span class="crit-max">(máx: 15 pts)</span></div>
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-wfem-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-0" class="crit-num" value="13" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-1" class="crit-num" value="7" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-2" class="crit-num" value="4" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfem-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-3" class="crit-num" value="-13" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-0" class="crit-num" value="15" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-1" class="crit-num" value="8" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-2" class="crit-num" value="5" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfem-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfem-pts-3" class="crit-num" value="-15" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -483,14 +483,14 @@
 
               <!-- WFE s/ Outliers -->
               <div class="crit-section">
-                <div class="crit-section-title">WFE s/ Outliers <span class="crit-max">(máx: 12 pts)</span></div>
+                <div class="crit-section-title">WFE s/ Outliers <span class="crit-max">(máx: 15 pts)</span></div>
                 <table class="crit-table">
                   <thead><tr><th>Mínimo %</th><th>Pontos</th></tr></thead>
                   <tbody>
-                    <tr><td><input type="number" id="crit-wfeo-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-0" class="crit-num" value="12" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-1" class="crit-num" value="10" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-2" class="crit-num" value="7" step="any"></td></tr>
-                    <tr><td><input type="number" id="crit-wfeo-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-3" class="crit-num" value="-12" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-0" class="crit-num" value="70" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-0" class="crit-num" value="15" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-1" class="crit-num" value="65" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-1" class="crit-num" value="12" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-2" class="crit-num" value="50" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-2" class="crit-num" value="9" step="any"></td></tr>
+                    <tr><td><input type="number" id="crit-wfeo-min-3" class="crit-num" value="49.9" min="0" max="100" step="any"></td><td><input type="number" id="crit-wfeo-pts-3" class="crit-num" value="-15" step="any"></td></tr>
                     <tr><td class="crit-fixed-cell">0 (fixo)</td><td class="crit-fixed-cell">0 (fixo)</td></tr>
                   </tbody>
                 </table>
@@ -821,7 +821,7 @@ document.getElementById('crit-toggle').addEventListener('click', function () {
 });
 
 // ─── Persistência dos critérios (localStorage) ────────────────────────────────
-const CRIT_KEY = 'wfa-criterios-v2';
+const CRIT_KEY = 'wfa-criterios-v3';
 
 // IDs de todos os campos editáveis dos critérios
 const CRIT_IDS = [
@@ -1284,12 +1284,12 @@ function buildDetail(d, wfm) {
   ];
 
   const scoreItems = [
-    { label: 'Representatividade', pts: s.representatividade, max: 20 },
-    { label: 'Consecutivos Neg.', pts: s.consecutivos_negativos, max: 20 },
-    { label: '% WFE Positivo', pts: s.pct_steps_positivos, max: 20 },
+    { label: 'Representatividade', pts: s.representatividade, max: 15 },
+    { label: 'Consecutivos Neg.', pts: s.consecutivos_negativos, max: 15 },
+    { label: '% WFE Positivo', pts: s.pct_steps_positivos, max: 15 },
     { label: 'Z-Score', pts: s.zscore, max: 15 },
-    { label: 'WFE Médio', pts: s.wfe_medio, max: 13 },
-    { label: 'WFE s/ Outliers', pts: s.wfe_sem_outliers, max: 12 },
+    { label: 'WFE Médio', pts: s.wfe_medio, max: 15 },
+    { label: 'WFE s/ Outliers', pts: s.wfe_sem_outliers, max: 15 },
     ...(s.significancia != null ? [{ label: 'Significância', pts: s.significancia, max: 10 }] : []),
   ];
 
