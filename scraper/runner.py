@@ -11,6 +11,9 @@ from scraper.extractor import (
     select_scenario,
     get_scenario_data,
     get_chart_data,
+    extract_oos_equity_steps,
+    extract_oos_via_svg_attrs,
+    extract_oos_via_hover,
 )
 from analysis.metrics import compute_all_metrics
 from analysis.verdict import calcular_veredicto, veredicto_global
@@ -32,7 +35,31 @@ def _collect_scenario(
     except (ValueError, TypeError):
         pass
 
-    metrics = compute_all_metrics(scenario_data, meses_total)
+    # Extrai valores financeiros R$ OOS por step do gráfico de barras
+    n_steps = len(scenario_data["tabela_wfa"])
+    wfm_row = wfm[index] if index < len(wfm) else {}
+
+    # Tentativa 1: atributos SVG das barras (val, j, seriesIndex) — mais rápido
+    oos_equity_steps = extract_oos_via_svg_attrs(page, n_steps)
+    if oos_equity_steps:
+        push({"type": "log", "msg": f"[{label}] ✓ Equity OOS via SVG attrs: {len(oos_equity_steps)} steps"})
+
+    # Tentativa 2: window.Apex._chartInstances (JS config)
+    if not oos_equity_steps:
+        oos_equity_steps = extract_oos_equity_steps(chart_data, n_steps)
+        if oos_equity_steps:
+            push({"type": "log", "msg": f"[{label}] ✓ Equity OOS via Apex config: {len(oos_equity_steps)} steps"})
+
+    # Tentativa 3: mouse sobre o canvas + leitura do tooltip
+    if not oos_equity_steps:
+        push({"type": "log", "msg": f"[{label}] Tentando hover no gráfico..."})
+        oos_equity_steps = extract_oos_via_hover(page, n_steps)
+        if oos_equity_steps:
+            push({"type": "log", "msg": f"[{label}] ✓ Equity OOS via hover: {len(oos_equity_steps)} steps"})
+        else:
+            push({"type": "log", "msg": f"[{label}] ⚠ Equity OOS não encontrado — coluna exibirá —"})
+
+    metrics = compute_all_metrics(scenario_data, meses_total, oos_equity_steps, wfm_row=wfm_row)
     verdict = calcular_veredicto(metrics, scoring=scoring_config, thresholds=veredicto_thresholds)
 
     cenario = {
@@ -43,8 +70,10 @@ def _collect_scenario(
         "tabela_wfa": scenario_data["tabela_wfa"],
         "parametros_frequentes": scenario_data["parametros_frequentes"],
         "charts": chart_data,
+        "oos_equity_steps": oos_equity_steps,   # R$ por step (para o template)
         "metrics": metrics,
         "veredicto": verdict,
+        "wfm_row": wfm_row,
     }
 
     push({
@@ -79,6 +108,7 @@ def run_with_progress(
     scoring_config: dict | None = None,
     veredicto_thresholds: dict | None = None,
     estrategia: str = "",
+    max_cenarios: int = 0,
 ) -> None:
     """Executa a extração completa usando a Playwright sync API (sem asyncio)."""
 
@@ -88,7 +118,7 @@ def run_with_progress(
     push({"type": "log", "msg": "Iniciando browser Chromium..."})
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context(viewport={"width": 1440, "height": 900})
         page = context.new_page()
 
@@ -115,6 +145,10 @@ def run_with_progress(
             all_labels = [current_label] + all_labels
         elif current_label and current_label not in all_labels:
             all_labels = [current_label] + all_labels
+
+        if max_cenarios and 0 < max_cenarios < len(all_labels):
+            all_labels = all_labels[:max_cenarios]
+            push({"type": "log", "msg": f"⚙ Limitado a {max_cenarios} cenário(s) (modo teste)"})
 
         n = len(all_labels)
         push({"type": "progress_init", "total": n})

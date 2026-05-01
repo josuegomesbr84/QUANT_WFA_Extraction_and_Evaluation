@@ -34,8 +34,17 @@ def save(data: dict, output_dir: str = "resultados", estrategia: str = "") -> st
         except Exception:
             return str(v)
 
+    def fmt_currency(v):
+        try:
+            v = float(v)
+            s = f"{abs(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            return f"{'−' if v < 0 else ''}R$ {s}"
+        except Exception:
+            return "—"
+
     env.filters["fmt_pct"] = fmt_pct
     env.filters["fmt_pts"] = fmt_pts
+    env.filters["fmt_currency"] = fmt_currency
 
     template = env.get_template("report.html.j2")
     html = template.render(**data, now=datetime.now().strftime("%d/%m/%Y %H:%M"))

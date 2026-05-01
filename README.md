@@ -4,6 +4,21 @@
 
 ---
 
+## Changelog
+
+### v1.1.0 — 2026-04-30
+- **Critério Significância** adicionado ao sistema de scoring (Alta = +10 pts, Média = +5, Baixa = −5) — pontuação máxima passa de 100 → 110 pts
+- **Timer de execução** na UI: contador ⏱ MM:SS iniciado automaticamente após o login
+- **Botão Reiniciar Servidor** (🔄) sem perder a URL — reinicia o processo Python via `os.execv()`
+- **Card "Equity Total OOS"** no relatório HTML por cenário (quando R$ reais disponíveis)
+- **Veredicto Global reformulado**: exibe % de WFCs aprovados e comentário contextual indicando a melhor configuração de período OOS
+- **Seletor de número máximo de cenários** para modo teste (evita esperar todas as 12 iterações)
+
+### v1.0.0 — 2026-04-28
+- Versão inicial: extração completa, 6 critérios de scoring, relatório HTML/JSON, interface web com dark mode, critérios editáveis
+
+---
+
 ## Índice
 
 - [O que é este projeto?](#o-que-é-este-projeto)
@@ -142,7 +157,7 @@ python app.py
 
 ### Sistema de Pontuação
 
-Cada cenário recebe uma pontuação de **0 a 100 pontos**, distribuída em 6 critérios:
+Cada cenário recebe uma pontuação de **0 a 110 pontos**, distribuída em 7 critérios:
 
 | Critério | Peso Máx | O que mede |
 |---|---|---|
@@ -152,6 +167,7 @@ Cada cenário recebe uma pontuação de **0 a 100 pontos**, distribuída em 6 cr
 | Z-Score | 15 pts | Significância estatística dos resultados (quão improvável seria o desempenho por acaso) |
 | WFE Médio | 13 pts | Média do Walk Forward Efficiency — relação entre lucro IS e OOS |
 | WFE sem outliers (IQR) | 12 pts | Mesma média, porém com outliers removidos — mede consistência |
+| **Significância WFM** | **10 pts** | Nível de significância categórico exibido na Walk Forward Matrix (Alta / Média / Baixa) |
 
 #### Faixas de pontuação padrão
 
@@ -189,6 +205,14 @@ Cada cenário recebe uma pontuação de **0 a 100 pontos**, distribuída em 6 cr
 | < 2,0 | 0 |
 
 **WFE Médio e WFE sem Outliers** — escala similar (90%=máx, decrescendo até 0).
+
+**Significância WFM**
+| Nível | Pontos |
+|---|---|
+| Alta | +10 |
+| Média | +5 |
+| Baixa | −5 (penalidade) |
+| Não disponível | 0 |
 
 #### Veredicto por cenário
 

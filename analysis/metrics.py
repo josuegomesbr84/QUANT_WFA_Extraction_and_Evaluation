@@ -38,25 +38,22 @@ def parse_zscore(zscore_raw: str | None) -> float:
 
 def calc_representatividade(oos_values: list[float]) -> dict:
     """
-    Representatividade de cada step = |resultado_oos| / |equity_acumulado|.
-    Flag quando um único step impacta mais de 25% do equity acumulado naquele ponto.
+    Representatividade de cada step = |resultado_oos_step| / |equity_final_total|.
+    Mede a fatia que cada step individual representa do resultado total do cenário.
+    Um step com rep > 30% indica grave concentração de performance em um único período.
     """
-    equity_acumulado = 0.0
-    steps_acima = 0
-    max_rep = 0.0
+    equity_final = sum(oos_values)
     detalhes = []
+    max_rep = 0.0
 
     for v in oos_values:
-        equity_acumulado += v
-        rep = abs(v) / abs(equity_acumulado) if equity_acumulado != 0 else 0.0
+        rep = abs(v) / abs(equity_final) if equity_final != 0 else 0.0
         max_rep = max(max_rep, rep)
-        if rep > 0.25:
-            steps_acima += 1
         detalhes.append(round(rep, 4))
 
     return {
-        "steps_acima_25pct": steps_acima,
-        "max_representatividade": round(max_rep, 4),
+        "max_representatividade": round(max_rep, 4),   # fração (0.0–1.0+)
+        "equity_final": round(equity_final, 2),
         "detalhes": detalhes,
     }
 
@@ -104,6 +101,23 @@ def calc_pct_wfe_positivo(wfe_values: list[float]) -> float:
     return round(positivos / len(wfe_values) * 100, 2)
 
 
+def detect_wfe_outliers(wfe_values: list[float]) -> list[bool]:
+    """
+    Retorna uma lista de booleans indicando se cada step é outlier de WFE.
+    Usa o método IQR (1.5×IQR): valores fora de [Q1−1.5×IQR, Q3+1.5×IQR] são outliers.
+    Com menos de 4 steps, nenhum é marcado como outlier (dados insuficientes).
+    """
+    if len(wfe_values) < 4:
+        return [False] * len(wfe_values)
+
+    arr = np.array(wfe_values, dtype=float)
+    q1, q3 = np.percentile(arr, [25, 75])
+    iqr = q3 - q1
+    lower = q1 - 1.5 * iqr
+    upper = q3 + 1.5 * iqr
+    return [bool(v < lower or v > upper) for v in wfe_values]
+
+
 def calc_wfe_sem_outliers(wfe_values: list[float]) -> float:
     """WFE médio após remoção de outliers pelo método IQR (1.5×IQR)."""
     if len(wfe_values) < 4:
@@ -117,8 +131,21 @@ def calc_wfe_sem_outliers(wfe_values: list[float]) -> float:
     return round(float(np.mean(filtered)) if len(filtered) > 0 else float(np.mean(arr)), 2)
 
 
-def compute_all_metrics(scenario_data: dict, meses_total: int = 0) -> dict:
-    """Calcula todas as métricas analíticas para um cenário."""
+def compute_all_metrics(
+    scenario_data: dict,
+    meses_total: int = 0,
+    oos_equity_steps: list[float] | None = None,
+    wfm_row: dict | None = None,
+) -> dict:
+    """Calcula todas as métricas analíticas para um cenário.
+
+    Args:
+        scenario_data: dados brutos extraídos do cenário (tabela_wfa, zscore_raw, etc.)
+        meses_total: duração total do período em meses (para detecção de ano negativo)
+        oos_equity_steps: valores financeiros (R$) OOS por step extraídos do gráfico.
+                          Se fornecido, é usado para calc_representatividade (mais preciso).
+                          Se None, usa os valores CAGR/MDD da tabela como fallback.
+    """
     tabela = scenario_data.get("tabela_wfa", [])
 
     oos_values = [parse_currency(r.get("out_of_sample", "")) for r in tabela]
@@ -131,8 +158,17 @@ def compute_all_metrics(scenario_data: dict, meses_total: int = 0) -> dict:
     wfe_medio = round(float(np.mean(wfe_values)), 2) if wfe_values else 0.0
     wfe_sem_outliers = calc_wfe_sem_outliers(wfe_values)
     pct_positivos = calc_pct_wfe_positivo(wfe_values)
-    representatividade = calc_representatividade(oos_values)
+
+    # Usa R$ reais para representatividade se disponível; fallback para CAGR/MDD da tabela
+    rep_source = oos_equity_steps if oos_equity_steps else oos_values
+    representatividade = calc_representatividade(rep_source)
+
     consecutivos = calc_consecutivos_negativos(oos_values, meses_por_step)
+    wfe_outliers = detect_wfe_outliers(wfe_values)
+
+    # Significância categórica do WFM (Alta / Média / Baixa)
+    sig_raw = (wfm_row or {}).get("significancia", "")
+    significancia = sig_raw.strip().lower()   # "alta", "média"/"media", "baixa" ou ""
 
     return {
         "n_steps": n_steps,
@@ -142,6 +178,11 @@ def compute_all_metrics(scenario_data: dict, meses_total: int = 0) -> dict:
         "pct_steps_positivos": pct_positivos,
         "representatividade": representatividade,
         "consecutivos_negativos": consecutivos,
+        "wfe_outliers": wfe_outliers,
         "oos_values": oos_values,
         "wfe_values": wfe_values,
+        # Valores usados como numerador no cálculo de representatividade.
+        # São os R$ reais por step (se disponíveis do gráfico) ou CAGR/MDD (fallback).
+        "oos_rep_values": rep_source,
+        "significancia": significancia,
     }

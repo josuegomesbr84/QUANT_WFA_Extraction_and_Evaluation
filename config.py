@@ -15,10 +15,11 @@ TIMEOUTS = {
 SCORING = {
     "representatividade": {
         "max": 20,
+        "tipo": "max_rep_pct",   # scoring via _score_por_maximo em verdict.py
         "faixas": [
-            {"condicao": "zero", "pts": 20},
-            {"condicao": "um", "pts": 8},
-            {"condicao": "dois_ou_mais", "pts": 0},
+            {"maximo": 25.0, "pts": 20},    # max_rep ≤ 25% → excelente consistência
+            {"maximo": 30.0, "pts": 8},     # max_rep ≤ 30% → aceitável
+            {"maximo": 9999.0, "pts": -20}, # max_rep > 30% → grave instabilidade (penalidade)
         ],
     },
     "consecutivos_negativos": {
@@ -69,6 +70,17 @@ SCORING = {
             {"minimo": 60.0, "pts": 3},
             {"minimo": 0.0,  "pts": 0},
         ],
+    },
+    "significancia": {
+        "max": 10,
+        "tipo": "categorico",
+        "pts": {
+            "alta":  10,
+            "média": 5,
+            "media": 5,    # alias sem acento
+            "baixa": -5,
+        },
+        "default": 0,      # valor não reconhecido ou ausente
     },
 }
 

@@ -64,6 +64,7 @@ async def extrair(
     estrategia: str = Form(""),
     scoring_config: str = Form(""),
     veredicto_thresholds: str = Form(""),
+    max_cenarios: int = Form(0),
 ):
     job_id = str(uuid.uuid4())
     async_queue: asyncio.Queue = asyncio.Queue()
@@ -91,16 +92,16 @@ async def extrair(
     except Exception as e:
         log.warning("veredicto_thresholds inválido, usando padrão: %s", e)
 
-    log.info("Job criado: %s  arquivo=%s  estrategia=%r  scoring_custom=%s", job_id, filename, estrategia, sc is not None)
+    log.info("Job criado: %s  arquivo=%s  estrategia=%r  scoring_custom=%s  max_cenarios=%s", job_id, filename, estrategia, sc is not None, max_cenarios)
     background_tasks.add_task(
-        _run_background, job_id, tmp_path, resolved_email, resolved_password, filename, sc, th, estrategia.strip()
+        _run_background, job_id, tmp_path, resolved_email, resolved_password, filename, sc, th, estrategia.strip(), max_cenarios
     )
     return {"job_id": job_id}
 
 
 async def _run_background(
     job_id: str, tmp_path: str, email: str, password: str, filename: str,
-    scoring_config=None, veredicto_thresholds=None, estrategia: str = "",
+    scoring_config=None, veredicto_thresholds=None, estrategia: str = "", max_cenarios: int = 0,
 ):
     """
     Roda o Playwright em uma thread separada com seu próprio event loop
@@ -114,7 +115,7 @@ async def _run_background(
     def _thread_target():
         log.info("[%s] thread de extração iniciada", job_id)
         try:
-            run_with_progress(tmp_path, email, password, filename, sync_q, scoring_config, veredicto_thresholds, estrategia)
+            run_with_progress(tmp_path, email, password, filename, sync_q, scoring_config, veredicto_thresholds, estrategia, max_cenarios)
         except BaseException as e:
             tb = traceback.format_exc()
             msg = str(e) or repr(e) or type(e).__name__
@@ -271,6 +272,26 @@ async def importar_relatorio(html_file: UploadFile = File(...)):
     log.info("Relatório importado: %s", dest.name)
 
     return {"filename": dest.name, "url": f"/resultados/{dest.name}"}
+
+
+@app.post("/admin/restart")
+async def restart_server():
+    """Reinicia o processo do servidor. Rejeita se houver extrações em andamento."""
+    if _jobs:
+        return JSONResponse(
+            {"ok": False, "msg": f"Há {len(_jobs)} extração(ões) em andamento. Aguarde e tente novamente."},
+            status_code=409,
+        )
+    import threading, os, sys
+
+    def _do_restart():
+        import time
+        time.sleep(0.3)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    threading.Thread(target=_do_restart, daemon=False).start()
+    log.info("Reiniciando servidor por solicitação do usuário...")
+    return JSONResponse({"ok": True})
 
 
 @app.get("/test-sse")

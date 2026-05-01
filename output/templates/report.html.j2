@@ -103,11 +103,12 @@
   </div>
 
   <!-- Veredicto Global -->
-  {% set vg_class = "ATENCAO" if veredicto_global == "ATENÇÃO" else veredicto_global %}
+  {% set vg_str = veredicto_global.veredicto if veredicto_global is mapping else veredicto_global %}
+  {% set vg_class = "ATENCAO" if vg_str == "ATENÇÃO" else vg_str %}
   <div class="veredicto-global {{ vg_class }}">
     <div>
       <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Veredicto Global</div>
-      <div class="badge-g">{{ veredicto_global }}</div>
+      <div class="badge-g">{{ vg_str }}</div>
     </div>
     <div class="sub">
       {% set aprovados  = cenarios | selectattr("veredicto.veredicto", "equalto", "APROVADO")  | list | length %}
@@ -115,6 +116,12 @@
       {% set reprovados = cenarios | selectattr("veredicto.veredicto", "equalto", "REPROVADO") | list | length %}
       <strong>{{ cenarios | length }} cenários avaliados</strong><br>
       ✅ {{ aprovados }} Aprovados &nbsp;|&nbsp; ⚠️ {{ atencao }} Atenção &nbsp;|&nbsp; ❌ {{ reprovados }} Reprovados
+      {% if veredicto_global is mapping and veredicto_global.pct_aprovados is defined %}
+      <br><strong>{{ veredicto_global.pct_aprovados }}% dos WFCs aprovados</strong>
+      {% endif %}
+      {% if veredicto_global is mapping and veredicto_global.comentario %}
+      <br><span style="font-size:12px;opacity:.8;">💡 {{ veredicto_global.comentario }}</span>
+      {% endif %}
     </div>
   </div>
 
@@ -202,8 +209,20 @@
             </div>
             <div class="metric-chip">
               <strong>{{ (c.metrics.representatividade.max_representatividade * 100) | round(1) }}%</strong>
-              Máx. Representatividade
+              Máx. Rep. / Equity Final
             </div>
+            {% if c.oos_equity_steps %}
+            <div class="metric-chip">
+              <strong>{{ c.metrics.representatividade.equity_final | fmt_currency }}</strong>
+              Equity Total OOS
+            </div>
+            {% endif %}
+            {% if c.wfm_row and c.wfm_row.significancia %}
+            <div class="metric-chip">
+              <strong>{{ c.wfm_row.significancia }}</strong>
+              Significância
+            </div>
+            {% endif %}
           </div>
 
           <!-- Scores por critério -->
@@ -251,6 +270,15 @@
               </div>
               <div class="score-max">/ 12 pts</div>
             </div>
+            {% if c.veredicto.scores.significancia is defined %}
+            <div class="score-item">
+              <div class="score-name">Significância</div>
+              <div class="score-val" style="color:{% if c.veredicto.scores.significancia > 0 %}var(--verde){% elif c.veredicto.scores.significancia == 0 %}var(--cinza){% else %}var(--vermelho){% endif %}">
+                {{ c.veredicto.scores.significancia }}
+              </div>
+              <div class="score-max">/ 10 pts</div>
+            </div>
+            {% endif %}
           </div>
 
           <!-- Tabela WFA do cenário -->
@@ -260,22 +288,43 @@
           <table class="inner-table">
             <thead>
               <tr>
-                <th>Step</th>
-                <th>In Sample</th>
-                <th>Out of Sample</th>
-                <th>WFE (%)</th>
-                <th>Op. IS</th>
-                <th>Op. OOS</th>
-                <th>Parâmetros</th>
+                <th rowspan="2">Step</th>
+                <th colspan="2" style="text-align:center;border-bottom:1px solid #3a4150;">CAGR / AVG DD</th>
+                <th rowspan="2">Equity OOS (R$)</th>
+                <th rowspan="2">Rep. %</th>
+                <th rowspan="2">WFE (%)</th>
+                <th rowspan="2">Outlier WFE</th>
+                <th rowspan="2">Op. IS</th>
+                <th rowspan="2">Op. OOS</th>
+                <th rowspan="2">Parâmetros</th>
+              </tr>
+              <tr>
+                <th style="font-size:10px;font-weight:500;opacity:.85;">In Sample</th>
+                <th style="font-size:10px;font-weight:500;opacity:.85;">Out of Sample</th>
               </tr>
             </thead>
             <tbody>
               {% for row in c.tabela_wfa %}
+              {% set eq = c.oos_equity_steps[loop.index0] if c.oos_equity_steps else none %}
               <tr>
                 <td>{{ row.step }}</td>
                 <td>{{ row.in_sample }}</td>
                 <td class="{% if '-' in row.out_of_sample %}neg{% else %}pos{% endif %}">{{ row.out_of_sample }}</td>
+                {# Equity OOS R$ por step — do gráfico de barras #}
+                <td class="{% if eq is not none and eq < 0 %}neg{% elif eq is not none %}pos{% endif %}">
+                  {% if eq is not none %}{{ "R$ {:,.2f}".format(eq) | replace(",", "X") | replace(".", ",") | replace("X", ".") }}{% else %}—{% endif %}
+                </td>
+                {# Representatividade deste step sobre o equity final #}
+                <td style="font-size:11px;color:#6c757d;">
+                  {{ (c.metrics.representatividade.detalhes[loop.index0] * 100) | round(1) }}%
+                </td>
                 <td class="{% if row.wfe and '-' in row.wfe %}neg{% else %}pos{% endif %}">{{ row.wfe }}</td>
+                {# Marcação de outlier WFE pelo método IQR #}
+                <td>
+                  {% if c.metrics.wfe_outliers[loop.index0] %}
+                  <span style="background:#fff3cd;color:#856404;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;">⚠ Outlier</span>
+                  {% endif %}
+                </td>
                 <td>{{ row.operacoes_is }}</td>
                 <td>{{ row.operacoes_oos }}</td>
                 <td style="font-size:11px;color:#495057">{{ row.parametros }}</td>

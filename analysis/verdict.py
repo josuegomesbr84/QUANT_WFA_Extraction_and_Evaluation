@@ -9,13 +9,19 @@ def _score_por_minimo(value: float, faixas: list[dict]) -> int:
     return 0
 
 
-def score_representatividade(steps_acima: int) -> int:
+def _score_por_maximo(value: float, faixas: list[dict]) -> int:
+    """Seleciona pontuação pela primeira faixa cujo máximo o valor não ultrapassa (ordem crescente).
+    Usado para métricas inversas onde menor valor é melhor (ex: representatividade)."""
+    for faixa in faixas:
+        if value <= faixa["maximo"]:
+            return faixa["pts"]
+    return faixas[-1]["pts"]
+
+
+def score_representatividade(max_rep_pct: float) -> int:
+    """Pontuação de representatividade baseada no step mais dominante (% do equity final)."""
     faixas = SCORING["representatividade"]["faixas"]
-    if steps_acima == 0:
-        return faixas[0]["pts"]
-    if steps_acima == 1:
-        return faixas[1]["pts"]
-    return 0
+    return _score_por_maximo(max_rep_pct, faixas)
 
 
 def score_consecutivos(max_consec: int, tem_ano_negativo: bool, qtd_pares: int) -> int:
@@ -45,6 +51,12 @@ def score_wfe_sem_outliers(wfe: float) -> int:
     return _score_por_minimo(wfe, SCORING["wfe_sem_outliers"]["faixas"])
 
 
+def _score_categorico(valor: str, cfg: dict) -> int:
+    """Scoring por valor categórico (ex: Alta / Média / Baixa)."""
+    key = (valor or "").strip().lower()
+    return cfg.get("pts", {}).get(key, cfg.get("default", 0))
+
+
 def calcular_veredicto(metrics: dict, scoring=None, thresholds=None) -> dict:
     """Calcula pontuação total e veredicto para um cenário.
 
@@ -63,13 +75,8 @@ def calcular_veredicto(metrics: dict, scoring=None, thresholds=None) -> dict:
 
     # ── Representatividade ────────────────────────────────────────────────────
     rep_faixas = sc["representatividade"]["faixas"]
-    steps_acima = rep["steps_acima_25pct"]
-    if steps_acima == 0:
-        r_pts = rep_faixas[0]["pts"]
-    elif steps_acima == 1:
-        r_pts = rep_faixas[1]["pts"]
-    else:
-        r_pts = rep_faixas[2]["pts"]
+    max_rep_pct = rep["max_representatividade"] * 100   # fração → percentual
+    r_pts = _score_por_maximo(max_rep_pct, rep_faixas)
 
     # ── Consecutivos Negativos ────────────────────────────────────────────────
     consec_faixas = sc["consecutivos_negativos"]["faixas"]
@@ -96,6 +103,9 @@ def calcular_veredicto(metrics: dict, scoring=None, thresholds=None) -> dict:
         "wfe_sem_outliers": _score_por_minimo(
             metrics["wfe_sem_outliers"], sc["wfe_sem_outliers"]["faixas"]
         ),
+        "significancia": _score_categorico(
+            metrics.get("significancia", ""), sc.get("significancia", SCORING["significancia"])
+        ),
     }
 
     total = sum(scores.values())
@@ -110,8 +120,15 @@ def calcular_veredicto(metrics: dict, scoring=None, thresholds=None) -> dict:
     return {"scores": scores, "total": total, "veredicto": veredicto}
 
 
-def veredicto_global(cenarios: list[dict]) -> str:
-    """Veredicto global baseado na distribuição dos veredictos individuais."""
+def veredicto_global(cenarios: list[dict]) -> dict:
+    """Veredicto global baseado na distribuição dos veredictos individuais.
+
+    Retorna dict com:
+        veredicto: "APROVADO" | "ATENÇÃO" | "REPROVADO"
+        pct_aprovados: int (0-100)
+        contagem: dict com contagens por veredicto
+        comentario: str com insight sobre melhor configuração OOS
+    """
     contagem = {"APROVADO": 0, "ATENÇÃO": 0, "REPROVADO": 0}
     for c in cenarios:
         v = c.get("veredicto", {}).get("veredicto", "REPROVADO")
@@ -119,10 +136,55 @@ def veredicto_global(cenarios: list[dict]) -> str:
 
     total = len(cenarios)
     if total == 0:
-        return "REPROVADO"
+        return {"veredicto": "REPROVADO", "pct_aprovados": 0, "contagem": contagem, "comentario": ""}
+
+    pct_aprovados = round(contagem["APROVADO"] / total * 100)
 
     if contagem["APROVADO"] / total > 0.5:
-        return "APROVADO"
-    if contagem["REPROVADO"] / total >= 0.5:
-        return "REPROVADO"
-    return "ATENÇÃO"
+        veredicto = "APROVADO"
+    elif contagem["REPROVADO"] / total >= 0.5:
+        veredicto = "REPROVADO"
+    else:
+        veredicto = "ATENÇÃO"
+
+    return {
+        "veredicto": veredicto,
+        "pct_aprovados": pct_aprovados,
+        "contagem": contagem,
+        "comentario": _gerar_comentario(cenarios),
+    }
+
+
+def _gerar_comentario(cenarios: list[dict]) -> str:
+    """Detecta qual configuração de OOS obteve melhor pontuação média."""
+    from analysis.metrics import parse_percentage
+
+    grupos: dict[str, list[int]] = {}
+    for c in cenarios:
+        wfm_row = c.get("wfm_row") or {}
+        oos_pct = parse_percentage(wfm_row.get("out_of_sample", ""))
+        if not oos_pct:
+            continue
+
+        meses = 0
+        try:
+            meses = int(str(c.get("cards", {}).get("meses") or "0"))
+        except Exception:
+            pass
+        steps = len(c.get("tabela_wfa", []))
+
+        if meses > 0 and steps > 0:
+            n = round(meses * (oos_pct / 100) / steps)
+            key = f"{n} mês" if n == 1 else f"{n} meses"
+        else:
+            key = f"{oos_pct:.0f}% OOS"
+
+        score = c.get("veredicto", {}).get("total", 0)
+        grupos.setdefault(key, []).append(score)
+
+    if len(grupos) < 2:
+        return ""
+
+    melhor = max(grupos, key=lambda k: sum(grupos[k]) / len(grupos[k]))
+    avg = round(sum(grupos[melhor]) / len(grupos[melhor]))
+    return f"Melhores resultados nos WFCs com OOS de {melhor} (média {avg} pts)."

@@ -304,6 +304,13 @@
 <!-- Botão de tema -->
 <button id="theme-btn" title="Alternar tema escuro/claro">🌙</button>
 
+<!-- Botão reiniciar servidor -->
+<button id="restart-btn" title="Reiniciar servidor"
+  style="position:fixed;top:14px;right:62px;z-index:1000;background:var(--card-bg);
+  border:1px solid var(--borda);border-radius:50%;width:40px;height:40px;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);transition:background .2s,border-color .2s;">🔄</button>
+
 <div class="wrap">
 
   <div class="hdr">
@@ -386,19 +393,19 @@
 
             <!-- Representatividade -->
             <div class="crit-section">
-              <div class="crit-section-title">Representatividade <span class="crit-max">(máx: 20 pts)</span></div>
+              <div class="crit-section-title">Representatividade — Step máx. / Equity Final <span class="crit-max">(máx: 20 pts)</span></div>
               <div class="crit-faixas">
                 <div class="crit-faixa">
-                  <span class="faixa-label">0 steps acima de 25% do equity</span>
-                  <input type="number" id="crit-rep-0" class="crit-num" value="20" min="0"> pts
+                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f1-max" class="crit-num" value="25" min="0" max="100" step="1">%</span>
+                  <input type="number" id="rep-f1-pts" class="crit-num" value="20"> pts
                 </div>
                 <div class="crit-faixa">
-                  <span class="faixa-label">1 step acima de 25% do equity</span>
-                  <input type="number" id="crit-rep-1" class="crit-num" value="8" min="0"> pts
+                  <span class="faixa-label">Máx. rep. ≤ <input type="number" id="rep-f2-max" class="crit-num" value="30" min="0" max="100" step="1">%</span>
+                  <input type="number" id="rep-f2-pts" class="crit-num" value="8"> pts
                 </div>
                 <div class="crit-faixa">
-                  <span class="faixa-label">2+ steps acima de 25% do equity</span>
-                  <span class="crit-fixed">0 pts (fixo)</span>
+                  <span class="faixa-label">Máx. rep. &gt; Faixa 2 (penalidade)</span>
+                  <input type="number" id="rep-f3-pts" class="crit-num" value="-20"> pts
                 </div>
               </div>
             </div>
@@ -491,6 +498,19 @@
 
             </div><!-- /crit-grid -->
 
+            <!-- Significância (categórica) -->
+            <div class="crit-section" style="margin-top:16px;">
+              <div class="crit-section-title">Significância <span class="crit-max">(máx: 10 pts)</span></div>
+              <table class="crit-table">
+                <thead><tr><th>Nível</th><th>Pontos</th></tr></thead>
+                <tbody>
+                  <tr><td>Alta</td><td><input type="number" id="crit-sig-alta" class="crit-num" value="10"></td></tr>
+                  <tr><td>Média</td><td><input type="number" id="crit-sig-media" class="crit-num" value="5"></td></tr>
+                  <tr><td>Baixa</td><td><input type="number" id="crit-sig-baixa" class="crit-num" value="-5"></td></tr>
+                </tbody>
+              </table>
+            </div>
+
             <!-- Botão salvar critérios -->
             <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
               <button type="button" id="btn-save-crit"
@@ -503,9 +523,16 @@
           </div><!-- /crit-panel-body -->
         </div><!-- /crit-panel -->
 
-        <button type="submit" class="btn-run" id="btn-run" disabled style="margin-top:16px">
-          ▶ Iniciar Extração
-        </button>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:16px;">
+          <button type="submit" class="btn-run" id="btn-run" disabled style="margin-top:0;flex:1">
+            ▶ Iniciar Extração
+          </button>
+          <label style="font-size:13px;color:var(--cinza);white-space:nowrap;display:flex;align-items:center;gap:6px;">
+            Cenários:
+            <input type="number" id="max-cenarios" value="12" min="1" max="99"
+                   style="width:56px;padding:6px 8px;border:1px solid var(--borda);border-radius:8px;font-size:13px;background:var(--input-bg);color:var(--input-color);text-align:center;">
+          </label>
+        </div>
       </form>
     </div>
   </div>
@@ -519,6 +546,7 @@
           <div class="progress-bar-fill" id="progress-fill"></div>
         </div>
         <div class="progress-label" id="progress-label">Iniciando...</div>
+        <div id="elapsed-timer" style="display:none;font-size:12px;color:var(--cinza);margin-top:6px;">⏱ 00:00</div>
         <div class="log-box" id="log-box"></div>
         <div class="error-box" id="error-box"></div>
         <div class="scenarios-live" id="scenarios-live"></div>
@@ -622,6 +650,22 @@
     applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
 })();
+
+// ─── Botão Reiniciar Servidor ─────────────────────────────────────────────────
+document.getElementById('restart-btn').addEventListener('click', async () => {
+  if (!confirm('Reiniciar o servidor? A página será recarregada automaticamente quando estiver pronto.')) return;
+  const btn = document.getElementById('restart-btn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try { await fetch('/admin/restart', { method: 'POST' }); } catch (_) {}
+  // Polling até o servidor voltar
+  const poll = setInterval(async () => {
+    try {
+      const r = await fetch('/');
+      if (r.ok) { clearInterval(poll); location.reload(); }
+    } catch (_) {}
+  }, 800);
+});
 
 // ─── Abas ────────────────────────────────────────────────────────────────────
 function switchTab(name) {
@@ -782,7 +826,7 @@ const CRIT_KEY = 'wfa-criterios';
 // IDs de todos os campos editáveis dos critérios
 const CRIT_IDS = [
   'crit-th-aprovado', 'crit-th-atencao',
-  'crit-rep-0', 'crit-rep-1',
+  'rep-f1-max', 'rep-f1-pts', 'rep-f2-max', 'rep-f2-pts', 'rep-f3-pts',
   'crit-consec-0', 'crit-consec-1', 'crit-consec-2',
   'crit-pct-min-0', 'crit-pct-min-1', 'crit-pct-min-2', 'crit-pct-min-3',
   'crit-pct-pts-0', 'crit-pct-pts-1', 'crit-pct-pts-2', 'crit-pct-pts-3',
@@ -792,6 +836,7 @@ const CRIT_IDS = [
   'crit-wfem-pts-0','crit-wfem-pts-1','crit-wfem-pts-2','crit-wfem-pts-3',
   'crit-wfeo-min-0','crit-wfeo-min-1','crit-wfeo-min-2','crit-wfeo-min-3',
   'crit-wfeo-pts-0','crit-wfeo-pts-1','crit-wfeo-pts-2','crit-wfeo-pts-3',
+  'crit-sig-alta', 'crit-sig-media', 'crit-sig-baixa',
 ];
 
 function saveCriteria() {
@@ -873,10 +918,11 @@ function numVal(id) { return parseFloat(document.getElementById(id).value) || 0;
 function buildScoringConfig() {
   return {
     representatividade: {
+      tipo: 'max_rep_pct',
       faixas: [
-        { condicao: 'zero',           pts: numVal('crit-rep-0') },
-        { condicao: 'um',             pts: numVal('crit-rep-1') },
-        { condicao: 'dois_ou_mais',   pts: 0 },
+        { maximo: numVal('rep-f1-max'), pts: numVal('rep-f1-pts') },
+        { maximo: numVal('rep-f2-max'), pts: numVal('rep-f2-pts') },
+        { maximo: 9999.0,               pts: numVal('rep-f3-pts') },
       ],
     },
     consecutivos_negativos: {
@@ -923,6 +969,17 @@ function buildScoringConfig() {
         { minimo: 0.0, pts: 0 },
       ],
     },
+    significancia: {
+      max: 10,
+      tipo: 'categorico',
+      pts: {
+        alta:  numVal('crit-sig-alta'),
+        média: numVal('crit-sig-media'),
+        media: numVal('crit-sig-media'),
+        baixa: numVal('crit-sig-baixa'),
+      },
+      default: 0,
+    },
   };
 }
 
@@ -961,6 +1018,21 @@ function log(msg, cls) {
   box.scrollTop = box.scrollHeight;
 }
 
+// ─── Timer de execução ────────────────────────────────────────────────────────
+let _timerStart = null, _timerInterval = null;
+function startTimer() {
+  _timerStart = Date.now();
+  const el = document.getElementById('elapsed-timer');
+  el.style.display = 'block';
+  _timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - _timerStart) / 1000);
+    el.textContent = '⏱ ' + String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }, 1000);
+}
+function stopTimer() {
+  if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+}
+
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let totalScenarios = 0;
 let doneScenarios  = 0;
@@ -979,6 +1051,8 @@ document.getElementById('form-wfa').addEventListener('submit', async e => {
   document.getElementById('scenarios-live').innerHTML = '';
   document.getElementById('error-box').style.display = 'none';
   document.getElementById('result-tbody').innerHTML = '';
+  document.getElementById('elapsed-timer').style.display = 'none';
+  stopTimer();
   totalScenarios = 0; doneScenarios = 0;
 
   const fd = new FormData();
@@ -989,6 +1063,7 @@ document.getElementById('form-wfa').addEventListener('submit', async e => {
   fd.append('estrategia', document.getElementById('f-estrategia').value.trim());
   fd.append('scoring_config',       JSON.stringify(buildScoringConfig()));
   fd.append('veredicto_thresholds', JSON.stringify(buildThresholds()));
+  fd.append('max_cenarios', document.getElementById('max-cenarios').value || '0');
 
   let jobId;
   try {
@@ -1028,6 +1103,7 @@ function handleEvent(msg, es, markFinished) {
   if (msg.type === 'log') {
     const cls = msg.msg.startsWith('✓') ? 'ok' : '';
     log(msg.msg, cls);
+    if ((msg.msg || '').includes('Login realizado')) startTimer();
   }
 
   if (msg.type === 'progress_init') {
@@ -1060,6 +1136,7 @@ function handleEvent(msg, es, markFinished) {
 
   if (msg.type === 'done') {
     markFinished();
+    stopTimer();
     es.close();
     renderResults(msg);
     btnRun.disabled = false;
@@ -1070,6 +1147,7 @@ function handleEvent(msg, es, markFinished) {
 
   if (msg.type === 'error') {
     markFinished();
+    stopTimer();
     es.close();
     showError(msg.msg || '(sem mensagem)', msg.detail);
     btnRun.disabled = false;
@@ -1113,18 +1191,29 @@ function renderResults(msg) {
   document.getElementById('section-results').style.display = 'block';
   document.getElementById('section-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const cls = vcClass(msg.veredicto_global);
+  // veredicto_global agora é um dict com .veredicto, .pct_aprovados, .comentario
+  const vg = (typeof msg.veredicto_global === 'object' && msg.veredicto_global)
+    ? msg.veredicto_global
+    : { veredicto: msg.veredicto_global, pct_aprovados: null, comentario: '' };
+  const cls = vcClass(vg.veredicto);
   const vbox = document.getElementById('veredicto-box');
   vbox.className = `veredicto-box ${cls}`;
+  const pctHtml = vg.pct_aprovados != null
+    ? `<br><strong>${vg.pct_aprovados}% dos WFCs aprovados</strong>`
+    : '';
+  const comentHtml = vg.comentario
+    ? `<br><span style="font-size:12px;opacity:.85;">💡 ${vg.comentario}</span>`
+    : '';
   vbox.innerHTML = `
     <div>
       <div class="vg-label">Veredicto Global</div>
-      <div class="vg-text">${msg.veredicto_global}</div>
+      <div class="vg-text">${vg.veredicto}</div>
     </div>
     <div class="vg-counts">
       ✅ <strong>${msg.aprovados}</strong> Aprovados &nbsp;|&nbsp;
       ⚠️ <strong>${msg.atencao}</strong> Atenção &nbsp;|&nbsp;
-      ❌ <strong>${msg.reprovados}</strong> Reprovados<br>
+      ❌ <strong>${msg.reprovados}</strong> Reprovados
+      ${pctHtml}${comentHtml}<br>
       <span style="font-size:12px;color:var(--cinza)">Arquivo: ${msg.arquivo}</span>
     </div>
     <div class="vg-actions">
@@ -1184,7 +1273,7 @@ function buildDetail(d, wfm) {
     { label: 'WFE s/ Outliers', val: m.wfe_sem_outliers != null ? m.wfe_sem_outliers.toFixed(1) + '%' : '—' },
     { label: '% Steps Pos.', val: m.pct_steps_positivos != null ? m.pct_steps_positivos.toFixed(1) + '%' : '—' },
     { label: 'Máx. Consecutivos Neg.', val: m.max_consecutivos },
-    { label: 'Máx. Representatividade', val: m.max_representatividade != null ? m.max_representatividade.toFixed(1) + '%' : '—' },
+    { label: 'Máx. Rep. / Equity Final', val: (m.representatividade?.max_representatividade != null) ? (m.representatividade.max_representatividade * 100).toFixed(1) + '%' : '—' },
   ];
 
   const scoreItems = [
@@ -1194,6 +1283,7 @@ function buildDetail(d, wfm) {
     { label: 'Z-Score', pts: s.zscore, max: 15 },
     { label: 'WFE Médio', pts: s.wfe_medio, max: 13 },
     { label: 'WFE s/ Outliers', pts: s.wfe_sem_outliers, max: 12 },
+    ...(s.significancia != null ? [{ label: 'Significância', pts: s.significancia, max: 10 }] : []),
   ];
 
   const chipsHtml = chips.map(c =>
