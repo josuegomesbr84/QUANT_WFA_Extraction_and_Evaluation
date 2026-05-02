@@ -6,6 +6,16 @@
 
 ## Changelog
 
+### v1.2.0 — 2026-05-02
+- **Regras de veto por cenário** — 5 condições que forçam REPROVADO independentemente da pontuação:
+  - Mais de 2 steps com representatividade > 30% (concentração de lucro)
+  - Z-Score < 2,5
+  - Ano negativo detectado (sequência de steps OOS negativos cobrindo ≥ 12 meses)
+  - WFE s/ Outliers < 50%
+  - WFE Médio < 50%
+- **Badges de veto** visíveis na tabela de cenários e no detalhe expansível (relatório HTML e UI)
+- **Veredicto Global reformulado**: comentário agora exibe `x WFC(s) reprovados por [motivo]` por regra de veto disparada — omitido quando nenhuma regra dispara
+
 ### v1.1.3 — 2026-05-01
 - **Pontuação máxima reequilibrada para 100 pts** — seis critérios principais passam a valer até 15 pts cada, e Significância permanece com até 10 pts
 - Defaults da UI e do backend alinhados ao novo total: `15 + 15 + 15 + 15 + 15 + 15 + 10 = 100`
@@ -256,12 +266,23 @@ Cada cenário recebe uma pontuação de **0 a 100 pontos**, distribuída em 7 cr
 | 50 – 74 pts | ⚠️ ATENÇÃO |
 | < 50 pts | ❌ REPROVADO |
 
+> **Regras de veto:** independentemente da pontuação, o cenário é automaticamente **REPROVADO** se qualquer uma das condições abaixo for verdadeira:
+> - Mais de 2 steps com representatividade > 30% (concentração de lucro excessiva)
+> - Z-Score < 2,5 (ausência de significância estatística mínima)
+> - Ano negativo detectado (≥ 12 meses consecutivos OOS negativos)
+> - WFE s/ Outliers < 50%
+> - WFE Médio < 50%
+>
+> Os relatórios indicam o motivo do veto com o badge 🚫.
+
 #### Veredicto global
 
 Baseado na distribuição dos 12 cenários:
 - Mais de 50% APROVADO → **APROVADO**
 - 50% ou mais REPROVADO → **REPROVADO**
 - Demais casos → **ATENÇÃO**
+
+O comentário global lista quantos WFCs foram reprovados por cada regra de veto (apenas as regras que dispararam são exibidas).
 
 ---
 

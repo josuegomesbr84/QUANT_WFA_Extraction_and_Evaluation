@@ -117,7 +117,30 @@ def calcular_veredicto(metrics: dict, scoring=None, thresholds=None) -> dict:
     else:
         veredicto = "REPROVADO"
 
-    return {"scores": scores, "total": total, "veredicto": veredicto}
+    # --- Regras de veto (sobrepõem pontuação) ---
+    vetos = []
+
+    rep_detalhes = metrics.get("representatividade", {}).get("detalhes", [])
+    steps_acima_30 = sum(1 for d in rep_detalhes if d > 0.30)
+    if steps_acima_30 > 2:
+        vetos.append("representatividade")
+
+    if metrics.get("zscore", 0) < 2.5:
+        vetos.append("zscore")
+
+    if metrics.get("consecutivos_negativos", {}).get("tem_ano_negativo", False):
+        vetos.append("ano_negativo")
+
+    if metrics.get("wfe_sem_outliers", 0) < 50:
+        vetos.append("wfe_sem_outliers")
+
+    if metrics.get("wfe_medio", 0) < 50:
+        vetos.append("wfe_medio")
+
+    if vetos:
+        veredicto = "REPROVADO"
+
+    return {"scores": scores, "total": total, "veredicto": veredicto, "vetos": vetos}
 
 
 def veredicto_global(cenarios: list[dict]) -> dict:
@@ -156,35 +179,23 @@ def veredicto_global(cenarios: list[dict]) -> dict:
 
 
 def _gerar_comentario(cenarios: list[dict]) -> str:
-    """Detecta qual configuração de OOS obteve melhor pontuação média."""
-    from analysis.metrics import parse_percentage
-
-    grupos: dict[str, list[int]] = {}
+    """Conta quantos WFCs foram vetados por cada regra de veto."""
+    _LABELS = {
+        "zscore":             "WFC(s) reprovados por Z-Score < 2,5",
+        "representatividade": "WFC(s) reprovados por concentração de lucro (representatividade)",
+        "ano_negativo":       "WFC(s) reprovados por ano negativo",
+        "wfe_sem_outliers":   "WFC(s) reprovados por WFE s/ Outliers < 50%",
+        "wfe_medio":          "WFC(s) reprovados por WFE Médio < 50%",
+    }
+    contadores = {k: 0 for k in _LABELS}
     for c in cenarios:
-        wfm_row = c.get("wfm_row") or {}
-        oos_pct = parse_percentage(wfm_row.get("out_of_sample", ""))
-        if not oos_pct:
-            continue
+        for v in c.get("veredicto", {}).get("vetos", []):
+            if v in contadores:
+                contadores[v] += 1
 
-        meses = 0
-        try:
-            meses = int(str(c.get("cards", {}).get("meses") or "0"))
-        except Exception:
-            pass
-        steps = len(c.get("tabela_wfa", []))
-
-        if meses > 0 and steps > 0:
-            n = round(meses * (oos_pct / 100) / steps)
-            key = f"{n} mês" if n == 1 else f"{n} meses"
-        else:
-            key = f"{oos_pct:.0f}% OOS"
-
-        score = c.get("veredicto", {}).get("total", 0)
-        grupos.setdefault(key, []).append(score)
-
-    if len(grupos) < 2:
-        return ""
-
-    melhor = max(grupos, key=lambda k: sum(grupos[k]) / len(grupos[k]))
-    avg = round(sum(grupos[melhor]) / len(grupos[melhor]))
-    return f"Melhores resultados nos WFCs com OOS de {melhor} (média {avg} pts)."
+    linhas = [
+        f"{contadores[k]} {label}"
+        for k, label in _LABELS.items()
+        if contadores[k] > 0
+    ]
+    return "\n".join(linhas)

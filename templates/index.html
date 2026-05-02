@@ -1209,7 +1209,7 @@ function renderResults(msg) {
     ? `<br><strong>${vg.pct_aprovados}% dos WFCs aprovados</strong>`
     : '';
   const comentHtml = vg.comentario
-    ? `<br><span style="font-size:12px;opacity:.85;">💡 ${vg.comentario}</span>`
+    ? vg.comentario.split('\n').map(l => `<div style="font-size:12px;opacity:.85;margin-top:3px;">📌 ${l}</div>`).join('')
     : '';
   vbox.innerHTML = `
     <div>
@@ -1253,7 +1253,7 @@ function renderResults(msg) {
       <td>${m.wfe_medio != null ? m.wfe_medio.toFixed(1) + '%' : '—'}</td>
       <td>${m.pct_steps_positivos != null ? m.pct_steps_positivos.toFixed(1) + '%' : '—'}</td>
       <td>${scoreBar(d.total_pts, cls2)}</td>
-      <td>${badge(d.veredicto)}</td>
+      <td>${badge(d.veredicto)}${(d.vetos && d.vetos.length) ? d.vetos.map(v => `<span style="background:#fee2e2;color:#991b1b;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:3px;font-weight:600;white-space:nowrap;">🚫 ${{zscore:'Z-Score',representatividade:'Concentração',ano_negativo:'Ano Neg.',wfe_sem_outliers:'WFE s/Out.',wfe_medio:'WFE Médio'}[v]||v}</span>`).join('') : ''}</td>
     `;
     tbody.appendChild(tr);
 
@@ -1306,7 +1306,22 @@ function buildDetail(d, wfm) {
     </div>`;
   }).join('');
 
+  const VETO_LABELS = {
+    zscore:             'Z-Score < 2,5',
+    representatividade: 'Concentração de lucro (representatividade)',
+    ano_negativo:       'Ano negativo',
+    wfe_sem_outliers:   'WFE s/ Outliers < 50%',
+    wfe_medio:          'WFE Médio < 50%',
+  };
+  const vetosHtml = (d.vetos && d.vetos.length)
+    ? `<div style="margin-bottom:14px;padding:10px 14px;background:#fee2e2;border-left:4px solid #c0392b;border-radius:6px;font-size:12px;color:#7f1d1d;">
+        <strong>🚫 Reprovado por regra de veto:</strong>
+        ${d.vetos.map(v => `<span style="display:inline-block;margin:2px 6px;">• ${VETO_LABELS[v] || v}</span>`).join('')}
+      </div>`
+    : '';
+
   return `
+    ${vetosHtml}
     <div style="font-size:11px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Indicadores</div>
     <div class="detail-grid">${chipsHtml}</div>
     <div style="font-size:11px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px;">Pontuação por Critério</div>

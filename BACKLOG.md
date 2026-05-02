@@ -201,6 +201,29 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
+## 🚦 FASE 10 — v1.2.0: Regras de Veto por Cenário (2026-05-02)
+
+- ✅ **5 regras de veto** em `analysis/verdict.py` — `calcular_veredicto()` força `"REPROVADO"` independentemente da pontuação:
+  - Mais de 2 steps com `representatividade > 30%` (concentração de lucro)
+  - Z-Score < 2,5 (significância estatística insuficiente)
+  - `tem_ano_negativo == True` (sequência de ≥ 12 meses OOS negativos)
+  - WFE s/ Outliers < 50%
+  - WFE Médio < 50%
+- ✅ **Campo `"vetos": [...]`** adicionado ao retorno de `calcular_veredicto()` — lista de chaves das regras que dispararam (vazia se nenhuma)
+- ✅ **`_gerar_comentario()` reformulada** em `analysis/verdict.py` — substitui o insight de "melhor OOS" por contagem de WFCs reprovados por regra; string vazia quando nenhuma regra dispara (comentário ocultado)
+- ✅ **`scraper/runner.py`** — push `scenario_done` inclui `"vetos"` e objeto completo `"representatividade"` (em vez de apenas `max_representatividade` flat)
+- ✅ **`output/templates/report.html.j2`**:
+  - Tabela WFM: badges `🚫 Z-Score`, `🚫 Concentração` etc. ao lado do badge de veredicto
+  - Detalhe expansível: caixa vermelha com razões completas do veto
+  - Comentário global: linhas `📌 x WFC(s) reprovados por [motivo]` renderizadas individualmente
+- ✅ **`templates/index.html`**:
+  - Tabela de cenários: badges de veto ao lado do badge de veredicto
+  - Detalhe expansível (`buildDetail`): caixa vermelha no topo com razões do veto
+  - Comentário global (`renderResults`): split por `\n`, cada linha com `📌`
+- ✅ **README e BACKLOG atualizados** — seção de veto documentada na tabela de scoring
+
+---
+
 ## 📋 PENDENTE / BACKLOG FUTURO
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS

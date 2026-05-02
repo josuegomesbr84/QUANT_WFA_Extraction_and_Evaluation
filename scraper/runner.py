@@ -83,15 +83,14 @@ def _collect_scenario(
         "veredicto": verdict["veredicto"],
         "total_pts": verdict["total"],
         "scores": verdict["scores"],
+        "vetos": verdict.get("vetos", []),
         "metrics": {
             "zscore": metrics["zscore"],
             "wfe_medio": metrics["wfe_medio"],
             "wfe_sem_outliers": metrics["wfe_sem_outliers"],
             "pct_steps_positivos": metrics["pct_steps_positivos"],
             "max_consecutivos": metrics["consecutivos_negativos"]["max_consecutivos"],
-            "max_representatividade": round(
-                metrics["representatividade"]["max_representatividade"] * 100, 1
-            ),
+            "representatividade": metrics["representatividade"],
         },
         "wfm_row": wfm[index] if index < len(wfm) else {},
     })
