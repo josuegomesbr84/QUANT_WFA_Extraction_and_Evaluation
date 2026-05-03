@@ -6,6 +6,15 @@
 
 ## Changelog
 
+### v1.3.0 — 2026-05-03
+- **Enfileirador de WFAs (batch)** — selecione múltiplos arquivos `.wfa` e o sistema processa em sequência reaproveitando o mesmo browser/login (ganho ~30s por arquivo)
+- **Lista visual da fila** — cada arquivo aparece com badge de status (⏸/🔄/✅/❌) e input editável para o nome da estratégia
+- **Resiliência** — falha em um arquivo não interrompe o lote; UI mostra ❌ com tooltip da mensagem
+- **Análise Global reformulada** — substitui o badge categórico (APROVADO/REPROVADO/ATENÇÃO) pelo comentário OOS como destaque; cor reflete o tom da análise (verde se há OOS bom, vermelho se nenhum se destacou)
+- **Breakdown por OOS no veredicto global** — contagem de aprovados/atenção/reprovados agrupados por período OOS, com insight automático identificando quais OOS tiveram melhor desempenho
+- Novo endpoint `POST /extrair-batch` (legado `/extrair` preservado)
+- Eventos SSE adicionais: `batch_start`, `batch_file_start`, `batch_file_done`, `batch_file_error`, `batch_done`
+
 ### v1.2.0 — 2026-05-02
 - **Regras de veto por cenário** — 5 condições que forçam REPROVADO independentemente da pontuação:
   - Mais de 2 steps com representatividade > 30% (concentração de lucro)
@@ -146,22 +155,26 @@ python app.py
 
 **No navegador:**
 
-1. Preencha o **Nome da Estratégia** (ex: `Venus3_EURUSD_H1`) — usado no nome do arquivo de saída
-2. Arraste ou selecione o arquivo `.wfa`
+1. Arraste ou selecione **um ou mais** arquivos `.wfa` (drag-and-drop suporta múltiplos)
+2. Para cada arquivo da fila, edite o **Nome da Estratégia** se desejar (padrão: nome do arquivo sem extensão)
 3. (Opcional) Ajuste os critérios de avaliação no painel **⚙ Critérios de Avaliação**
-4. Clique em **▶ Iniciar Extração**
-5. Acompanhe o progresso em tempo real
-6. Ao concluir, acesse o relatório HTML ou baixe o JSON
+4. Clique em **▶ Iniciar Lote**
+5. Acompanhe a fila em tempo real — cada arquivo mostra ⏸ pendente / 🔄 rodando / ✅ concluído / ❌ erro
+6. Ao concluir, cada arquivo gera seu próprio relatório HTML/JSON acessível pelo link na fila
 
-> O processamento pode levar de **5 a 15 minutos** dependendo do tamanho do arquivo e da velocidade de processamento do BotSpot.
+> O processamento pode levar de **5 a 15 minutos por arquivo**. O browser e o login são reaproveitados entre arquivos — ganho de ~30s por arquivo no lote.
+
+> Se um arquivo falhar, o lote continua com os próximos. O arquivo com problema fica marcado com ❌ e o erro pode ser inspecionado via tooltip.
 
 ---
 
 ### Entendendo a Interface
 
-#### Área de Upload
-- Arraste o arquivo `.wfa` ou clique para selecionar
-- O campo **Nome da Estratégia** nomeia os relatórios gerados: `Avalia_WFA_[nome]_[data].html`
+#### Área de Upload e Fila
+- Arraste **um ou mais** arquivos `.wfa` (ou clique para selecionar múltiplos)
+- Cada arquivo gera uma linha na fila com: badge de status, nome do arquivo, input editável de estratégia e botão de remover
+- A estratégia é auto-preenchida com o nome do arquivo (sem `.wfa`); você pode editar antes de iniciar
+- Os relatórios saem nomeados como `Avalia_WFA_[estrategia]_[timestamp].html`
 
 #### Credenciais
 - Se configurou o `.env`, deixe em branco
@@ -288,11 +301,18 @@ O comentário global lista quantos WFCs foram reprovados por cada regra de veto 
 
 ### Interpretando os Resultados
 
-**APROVADO** — A estratégia demonstrou robustez estatística consistente. Os resultados fora da amostra acompanharam o comportamento in-sample de forma significativa.
+#### Por cenário (badge na tabela WFM)
+**APROVADO** — A estratégia demonstrou robustez estatística consistente naquele cenário (combinação Steps/IS/OOS).
 
-**ATENÇÃO** — Resultados mistos. A estratégia pode funcionar, mas apresenta pontos de fragilidade que merecem investigação antes de operá-la ao vivo.
+**ATENÇÃO** — Resultados mistos. Pode funcionar mas apresenta pontos de fragilidade.
 
-**REPROVADO** — A estratégia não demonstrou robustez suficiente. Os resultados fora da amostra foram inconsistentes ou concentrados em poucos steps.
+**REPROVADO** — Não demonstrou robustez suficiente. Pode estar marcado também por **regras de veto** (badge 🚫) — Z-Score baixo, ano negativo, concentração de lucro, WFE médio ou s/ outliers fraco.
+
+#### Análise Global (no topo do relatório)
+- **Comentário de adaptação**: identifica em quais períodos OOS a estratégia teve mais aprovados que reprovados (ex: *"Sua estratégia parece se adaptar melhor nos períodos OOS 4 e 5"*)
+- **Cor de fundo**: verde se há OOS com bom desempenho, vermelho se *nenhum* OOS apresentou maioria de aprovações (caso em que recomenda-se revisar a estratégia)
+- **Breakdown por OOS**: contagem aprovado/atenção/reprovado agrupada por período
+- **Vetos por regra**: lista 📌 com quantos WFCs caíram em cada regra de veto (Z-Score, concentração, ano negativo, WFE)
 
 > Os relatórios gerados ficam em `resultados/` com o formato `Avalia_WFA_[nome]_[timestamp].html` e `.json`.
 

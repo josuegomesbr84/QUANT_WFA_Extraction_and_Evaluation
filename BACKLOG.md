@@ -224,6 +224,49 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
+## 📦 FASE 11 — v1.3.0: Análise Global Reformulada + Enfileirador de WFAs (2026-05-03)
+
+### Análise Global por OOS
+
+- ✅ **`analysis/verdict.py`** — `_gerar_por_oos()` agrupa cenários pelo período OOS e conta APROVADO/ATENÇÃO/REPROVADO em cada grupo (sorted numericamente)
+- ✅ **`_comentario_oos()`** gera insight automático: "Sua estratégia parece se adaptar melhor nos períodos OOS X e Y" se algum grupo tem `aprovado > reprovado`; "Nenhum período OOS apresentou maioria de aprovações" caso contrário
+- ✅ **Campo `tom`** ("positivo" / "negativo" / "neutro") no `veredicto_global` — drives da cor de fundo no relatório
+- ✅ **Substituição do badge categórico** (APROVADO/REPROVADO/ATENÇÃO) pelo `comentario_oos` como destaque na "Análise Global" do relatório HTML e da UI
+
+### Mismatch WFM ↔ Cenários
+
+- ✅ **`scraper/extractor.py`** — `find_wfm_row_by_label()`: extrai IS/OOS do label e busca a linha WFM pelo valor (não pelo índice)
+- ✅ **`scraper/runner.py`** — `_collect_scenario()` usa lookup por valor; `wfm[index]` removido
+- ✅ **`output/templates/report.html.j2`** — `c.wfm_row` em vez de `wfm[loop.index0]`
+
+### Enfileirador de WFAs (Batch Processing)
+
+- ✅ **`scraper/runner.py`** — refatorado em três funções:
+  - `_process_single_wfa(page, ...)`: assume browser/login prontos; navega para `/wfa`, faz upload, extrai cenários, gera relatórios; retorna dict (não emite `done`)
+  - `run_batch_with_progress(files, ...)`: abre browser+login uma única vez, itera arquivos com try/except por arquivo, emite `batch_file_*` e `batch_done` terminal
+  - `run_with_progress(...)`: wrapper retrocompatível para single-file
+- ✅ **`app.py`**:
+  - Novo endpoint `POST /extrair-batch` aceitando `wfa_files: list[UploadFile]` e `estrategias` (JSON list)
+  - `_run_batch_background()`: bridge SSE encerra em `batch_done|error`
+  - Limpeza de `tmp/{job_id}/` no finally
+  - `/stream/{job_id}` reconhece `batch_done` como terminal
+- ✅ **`templates/index.html`**:
+  - Input `<multiple>` aceitando vários `.wfa`
+  - Estado JS `batchFiles[]` com auto-derivação da estratégia (nome sem `.wfa`)
+  - Lista visual da fila: badge ⏸/🔄/✅/❌, input editável de estratégia, botão remover
+  - Spinner CSS animado para estado "rodando"
+  - `handleEvent()` trata `batch_start`, `batch_file_start`, `batch_file_done`, `batch_file_error`, `batch_done`
+  - Botão "Iniciar Lote" / "Novo Lote"
+- ✅ **Resiliência**: falha de login aborta lote; falha em arquivo individual marca ❌ e segue para o próximo
+- ✅ **Performance**: login único reaproveitado entre arquivos (~30s economizados por arquivo)
+
+### Documentação
+
+- ✅ README atualizado: changelog v1.3.0, seção "Como Usar" com fluxo de lote, "Interpretando os Resultados" com regras de veto e Análise Global
+- ✅ BACKLOG: nova FASE 11 documentando todas as entregas
+
+---
+
 ## 📋 PENDENTE / BACKLOG FUTURO
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS
