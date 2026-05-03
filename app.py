@@ -23,7 +23,7 @@ from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from scraper.runner import run_with_progress
+from scraper.runner import run_with_progress, run_batch_with_progress
 
 load_dotenv()
 
@@ -167,6 +167,169 @@ async def _run_background(
         log.info("[%s] _run_background finalizado", job_id)
 
 
+# ─── Batch (lote de múltiplos .wfa) ──────────────────────────────────────────
+
+@app.post("/extrair-batch")
+async def extrair_batch(
+    background_tasks: BackgroundTasks,
+    wfa_files: list[UploadFile] = File(...),
+    estrategias: str = Form("[]"),
+    email: str = Form(""),
+    password: str = Form(""),
+    scoring_config: str = Form(""),
+    veredicto_thresholds: str = Form(""),
+    max_cenarios: int = Form(0),
+):
+    if not wfa_files:
+        return JSONResponse({"error": "Nenhum arquivo enviado"}, status_code=400)
+
+    job_id = str(uuid.uuid4())
+    async_queue: asyncio.Queue = asyncio.Queue()
+    _jobs[job_id] = async_queue
+
+    job_dir = Path("tmp") / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        estrategias_list = json.loads(estrategias) if estrategias.strip() else []
+        if not isinstance(estrategias_list, list):
+            estrategias_list = []
+    except Exception as e:
+        log.warning("estrategias inválido (%s), usando lista vazia", e)
+        estrategias_list = []
+
+    files_meta: list[dict] = []
+    for i, uf in enumerate(wfa_files):
+        original_name = uf.filename or f"arquivo_{i}.wfa"
+        safe_name = re.sub(r'[\\/:*?"<>|]', '_', original_name)
+        path = job_dir / f"{i:03d}_{safe_name}"
+        content = await uf.read()
+        with open(path, "wb") as f:
+            f.write(content)
+
+        estrategia_i = ""
+        if i < len(estrategias_list) and isinstance(estrategias_list[i], str):
+            estrategia_i = estrategias_list[i].strip()
+        # fallback: deriva do nome do arquivo
+        if not estrategia_i:
+            estrategia_i = re.sub(r"\.wfa$", "", original_name, flags=re.IGNORECASE)
+
+        files_meta.append({
+            "path": str(path),
+            "filename": original_name,
+            "estrategia": estrategia_i,
+        })
+
+    sc = None
+    th = None
+    try:
+        if scoring_config.strip():
+            sc = json.loads(scoring_config)
+    except Exception as e:
+        log.warning("scoring_config inválido, usando padrão: %s", e)
+    try:
+        if veredicto_thresholds.strip():
+            th = json.loads(veredicto_thresholds)
+    except Exception as e:
+        log.warning("veredicto_thresholds inválido, usando padrão: %s", e)
+
+    resolved_email = email.strip() or os.getenv("BOTSPOT_EMAIL", "")
+    resolved_password = password.strip() or os.getenv("BOTSPOT_PASSWORD", "")
+
+    log.info(
+        "Batch criado: %s  total=%d  scoring_custom=%s  max_cenarios=%s",
+        job_id, len(files_meta), sc is not None, max_cenarios,
+    )
+    background_tasks.add_task(
+        _run_batch_background,
+        job_id, files_meta, resolved_email, resolved_password, sc, th, max_cenarios,
+    )
+    return {"job_id": job_id, "total": len(files_meta)}
+
+
+async def _run_batch_background(
+    job_id: str,
+    files_meta: list[dict],
+    email: str,
+    password: str,
+    scoring_config=None,
+    veredicto_thresholds=None,
+    max_cenarios: int = 0,
+):
+    """Versão batch do _run_background. Encerra ao receber `batch_done` ou `error`."""
+    log.info("[%s] _run_batch_background iniciado (%d arquivos)", job_id, len(files_meta))
+    async_queue = _jobs[job_id]
+    sync_q: tq.Queue = tq.Queue()
+
+    def _thread_target():
+        log.info("[%s] thread batch iniciada", job_id)
+        try:
+            run_batch_with_progress(
+                files=files_meta,
+                email=email,
+                password=password,
+                sync_queue=sync_q,
+                scoring_config=scoring_config,
+                veredicto_thresholds=veredicto_thresholds,
+                max_cenarios=max_cenarios,
+            )
+        except BaseException as e:
+            tb = traceback.format_exc()
+            msg = str(e) or repr(e) or type(e).__name__
+            log.error("[%s] exceção na thread batch: %s\n%s", job_id, msg, tb)
+            sync_q.put({"type": "error", "msg": msg, "detail": tb})
+        finally:
+            log.info("[%s] thread batch encerrada", job_id)
+
+    t = threading.Thread(target=_thread_target, daemon=True)
+    t.start()
+
+    try:
+        while True:
+            try:
+                msg = sync_q.get_nowait()
+            except tq.Empty:
+                if not t.is_alive():
+                    log.warning("[%s] thread batch morreu sem batch_done/error", job_id)
+                    await async_queue.put({
+                        "type": "error",
+                        "msg": "Thread de extração encerrou inesperadamente",
+                        "detail": "",
+                    })
+                    break
+                await asyncio.sleep(0.15)
+                continue
+
+            log.debug("[%s] bridge → SSE: %s", job_id, msg.get("type"))
+            await async_queue.put(msg)
+            if msg.get("type") in ("batch_done", "error"):
+                break
+    except Exception as exc:
+        log.exception("[%s] erro inesperado no bridge batch: %s", job_id, exc)
+        try:
+            await async_queue.put({"type": "error", "msg": str(exc), "detail": traceback.format_exc()})
+        except Exception:
+            pass
+    finally:
+        t.join(timeout=10)
+        # Limpa o diretório tmp/{job_id}/
+        try:
+            job_dir = Path("tmp") / job_id
+            if job_dir.exists():
+                for f in job_dir.glob("*"):
+                    try:
+                        f.unlink()
+                    except Exception:
+                        pass
+                try:
+                    job_dir.rmdir()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        log.info("[%s] _run_batch_background finalizado", job_id)
+
+
 @app.get("/stream/{job_id}")
 async def stream(job_id: str):
     if job_id not in _jobs:
@@ -194,7 +357,7 @@ async def stream(job_id: str):
                 yield f"data: {data}\n\n"
                 log.debug("SSE enviou: %s", msg.get("type"))
 
-                if msg.get("type") in ("done", "error"):
+                if msg.get("type") in ("done", "batch_done", "error"):
                     _jobs.pop(job_id, None)
                     break
         except asyncio.CancelledError:

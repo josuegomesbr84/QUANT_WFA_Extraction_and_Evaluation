@@ -1,7 +1,9 @@
 import queue as tq
+import traceback
 
 from playwright.sync_api import sync_playwright
 
+from config import UPLOAD_URL
 from scraper.auth import login
 from scraper.upload import send_wfa
 from scraper.extractor import (
@@ -101,79 +103,70 @@ def _collect_scenario(
     return cenario
 
 
-def run_with_progress(
+def _process_single_wfa(
+    page,
     wfa_path: str,
-    email: str,
-    password: str,
     filename: str,
     sync_queue: tq.Queue,
     scoring_config: dict | None = None,
     veredicto_thresholds: dict | None = None,
     estrategia: str = "",
     max_cenarios: int = 0,
-) -> None:
-    """Executa a extração completa usando a Playwright sync API (sem asyncio)."""
+) -> dict:
+    """Processa um único .wfa assumindo a página Playwright já autenticada.
 
+    Faz upload, extrai todos os cenários, gera relatórios HTML+JSON e retorna
+    um dict com paths e veredicto. Não emite o evento `done` — quem chama é
+    responsável (run_with_progress emite `done`, run_batch_with_progress emite
+    `batch_file_done`).
+    """
     def push(msg: dict):
         sync_queue.put(msg)
 
-    push({"type": "log", "msg": "Iniciando browser Chromium..."})
+    push({"type": "log", "msg": f"Enviando arquivo: {filename}..."})
+    page.goto(UPLOAD_URL)
+    send_wfa(page, wfa_path)
+    push({"type": "log", "msg": "✓ Upload concluído — /wfareport habilitado"})
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(viewport={"width": 1440, "height": 900})
-        page = context.new_page()
+    push({"type": "log", "msg": "Extraindo Walk Forward Matrix..."})
+    wfm = get_wfm(page)
+    push({"type": "log", "msg": f"✓ Walk Forward Matrix: {len(wfm)} cenários encontrados"})
 
-        push({"type": "log", "msg": "Fazendo login no BotSpot..."})
-        login(page, email, password)
-        push({"type": "log", "msg": "✓ Login realizado"})
+    # ── Lê todos os labels (abre o dropdown uma vez para forçar render) ──
+    all_labels = get_scenario_labels(page)
 
-        push({"type": "log", "msg": f"Enviando arquivo: {filename}..."})
-        send_wfa(page, wfa_path)
-        push({"type": "log", "msg": "✓ Upload concluído — /wfareport habilitado"})
+    # ── Identifica o cenário já carregado automaticamente ──────────────
+    current_label = get_current_scenario_label(page)
+    if current_label and current_label in all_labels:
+        all_labels.remove(current_label)
+        all_labels = [current_label] + all_labels
+    elif current_label and current_label not in all_labels:
+        all_labels = [current_label] + all_labels
 
-        push({"type": "log", "msg": "Extraindo Walk Forward Matrix..."})
-        wfm = get_wfm(page)
-        push({"type": "log", "msg": f"✓ Walk Forward Matrix: {len(wfm)} cenários encontrados"})
+    if max_cenarios and 0 < max_cenarios < len(all_labels):
+        all_labels = all_labels[:max_cenarios]
+        push({"type": "log", "msg": f"⚙ Limitado a {max_cenarios} cenário(s) (modo teste)"})
 
-        # ── Lê todos os labels (abre o dropdown uma vez para forçar render) ──
-        all_labels = get_scenario_labels(page)
+    n = len(all_labels)
+    push({"type": "progress_init", "total": n})
 
-        # ── Identifica o cenário já carregado automaticamente ──────────────
-        current_label = get_current_scenario_label(page)
-        if current_label and current_label in all_labels:
-            # Remove da lista e coloca no início
-            all_labels.remove(current_label)
-            all_labels = [current_label] + all_labels
-        elif current_label and current_label not in all_labels:
-            all_labels = [current_label] + all_labels
+    cenarios = []
 
-        if max_cenarios and 0 < max_cenarios < len(all_labels):
-            all_labels = all_labels[:max_cenarios]
-            push({"type": "log", "msg": f"⚙ Limitado a {max_cenarios} cenário(s) (modo teste)"})
+    # ── Cenário 0: já está carregado, coletar sem mudar ────────────────
+    push({"type": "scenario_start", "index": 0, "label": all_labels[0], "total": n})
+    push({"type": "log", "msg": f"[1/{n}] Coletando cenário já carregado: {all_labels[0]}"})
+    cenario = _collect_scenario(page, all_labels[0], 0, n, wfm, push, scoring_config, veredicto_thresholds)
+    cenarios.append(cenario)
 
-        n = len(all_labels)
-        push({"type": "progress_init", "total": n})
+    # ── Cenários 1-11: selecionar via dropdown e coletar ────────────────
+    for i in range(1, n):
+        label = all_labels[i]
+        push({"type": "scenario_start", "index": i, "label": label, "total": n})
+        push({"type": "log", "msg": f"[{i+1}/{n}] Selecionando: {label}"})
 
-        cenarios = []
-
-        # ── Cenário 0: já está carregado, coletar sem mudar ────────────────
-        push({"type": "scenario_start", "index": 0, "label": all_labels[0], "total": n})
-        push({"type": "log", "msg": f"[1/{n}] Coletando cenário já carregado: {all_labels[0]}"})
-        cenario = _collect_scenario(page, all_labels[0], 0, n, wfm, push, scoring_config, veredicto_thresholds)
+        select_scenario(page, label)
+        cenario = _collect_scenario(page, label, i, n, wfm, push, scoring_config, veredicto_thresholds)
         cenarios.append(cenario)
-
-        # ── Cenários 1-11: selecionar via dropdown e coletar ────────────────
-        for i in range(1, n):
-            label = all_labels[i]
-            push({"type": "scenario_start", "index": i, "label": label, "total": n})
-            push({"type": "log", "msg": f"[{i+1}/{n}] Selecionando: {label}"})
-
-            select_scenario(page, label)
-            cenario = _collect_scenario(page, label, i, n, wfm, push, scoring_config, veredicto_thresholds)
-            cenarios.append(cenario)
-
-        browser.close()
 
     v_global = veredicto_global(cenarios)
     result = {
@@ -193,13 +186,162 @@ def run_with_progress(
     atencao    = sum(1 for c in cenarios if c["veredicto"]["veredicto"] == "ATENÇÃO")
     reprovados = sum(1 for c in cenarios if c["veredicto"]["veredicto"] == "REPROVADO")
 
-    push({
-        "type": "done",
+    return {
+        "arquivo": filename,
         "veredicto_global": v_global,
         "json_path": json_web,
         "html_path": html_web,
-        "arquivo": filename,
         "aprovados": aprovados,
         "atencao": atencao,
         "reprovados": reprovados,
-    })
+    }
+
+
+def run_batch_with_progress(
+    files: list[dict],
+    email: str,
+    password: str,
+    sync_queue: tq.Queue,
+    scoring_config: dict | None = None,
+    veredicto_thresholds: dict | None = None,
+    max_cenarios: int = 0,
+) -> None:
+    """Processa um lote de .wfa em sequência, reaproveitando o mesmo browser/login.
+
+    `files` é uma lista de dicts: [{"path": str, "filename": str, "estrategia": str}, ...]
+
+    Eventos emitidos via sync_queue:
+      - batch_start (no início)
+      - batch_file_start / batch_file_done / batch_file_error (por arquivo)
+      - batch_done (terminal)
+      - error (apenas se a falha for fatal — ex: login)
+    """
+    def push(msg: dict):
+        sync_queue.put(msg)
+
+    n = len(files)
+    push({"type": "batch_start", "total": n})
+    push({"type": "log", "msg": f"📦 Lote iniciado: {n} arquivo(s)"})
+    push({"type": "log", "msg": "Iniciando browser Chromium..."})
+
+    results: list[dict] = []
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(viewport={"width": 1440, "height": 900})
+        page = context.new_page()
+
+        # Login único — falha aqui aborta o lote inteiro
+        try:
+            push({"type": "log", "msg": "Fazendo login no BotSpot..."})
+            login(page, email, password)
+            push({"type": "log", "msg": "✓ Login realizado"})
+        except Exception as e:
+            tb = traceback.format_exc()
+            push({"type": "error", "msg": f"Falha no login: {e}", "detail": tb})
+            try:
+                browser.close()
+            except Exception:
+                pass
+            return
+
+        for i, f in enumerate(files):
+            push({
+                "type": "batch_file_start",
+                "index": i,
+                "total": n,
+                "filename": f["filename"],
+                "estrategia": f.get("estrategia", ""),
+            })
+            push({"type": "log", "msg": f"━━━ [{i + 1}/{n}] {f['filename']} ━━━"})
+
+            try:
+                result = _process_single_wfa(
+                    page,
+                    wfa_path=f["path"],
+                    filename=f["filename"],
+                    sync_queue=sync_queue,
+                    scoring_config=scoring_config,
+                    veredicto_thresholds=veredicto_thresholds,
+                    estrategia=f.get("estrategia", ""),
+                    max_cenarios=max_cenarios,
+                )
+                push({
+                    "type": "batch_file_done",
+                    "index": i,
+                    "filename": f["filename"],
+                    **result,
+                })
+                results.append({"index": i, "ok": True, **result})
+            except Exception as e:
+                tb = traceback.format_exc()
+                push({
+                    "type": "batch_file_error",
+                    "index": i,
+                    "filename": f["filename"],
+                    "error": str(e) or repr(e) or type(e).__name__,
+                    "detail": tb,
+                })
+                results.append({
+                    "index": i,
+                    "ok": False,
+                    "filename": f["filename"],
+                    "error": str(e) or repr(e) or type(e).__name__,
+                })
+                push({"type": "log", "msg": f"⚠ Erro em {f['filename']}: continuando para o próximo arquivo"})
+
+        try:
+            browser.close()
+        except Exception:
+            pass
+
+    push({"type": "batch_done", "total": n, "results": results})
+
+
+def run_with_progress(
+    wfa_path: str,
+    email: str,
+    password: str,
+    filename: str,
+    sync_queue: tq.Queue,
+    scoring_config: dict | None = None,
+    veredicto_thresholds: dict | None = None,
+    estrategia: str = "",
+    max_cenarios: int = 0,
+) -> None:
+    """Executa a extração de um único .wfa (mantém retrocompatibilidade do
+    endpoint /extrair). Internamente é um wrapper que abre browser, faz login,
+    processa o arquivo e emite o evento `done` terminal.
+    """
+    def push(msg: dict):
+        sync_queue.put(msg)
+
+    push({"type": "log", "msg": "Iniciando browser Chromium..."})
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        context = browser.new_context(viewport={"width": 1440, "height": 900})
+        page = context.new_page()
+
+        try:
+            push({"type": "log", "msg": "Fazendo login no BotSpot..."})
+            login(page, email, password)
+            push({"type": "log", "msg": "✓ Login realizado"})
+
+            result = _process_single_wfa(
+                page,
+                wfa_path=wfa_path,
+                filename=filename,
+                sync_queue=sync_queue,
+                scoring_config=scoring_config,
+                veredicto_thresholds=veredicto_thresholds,
+                estrategia=estrategia,
+                max_cenarios=max_cenarios,
+            )
+        finally:
+            try:
+                browser.close()
+            except Exception:
+                pass
+
+    push({"type": "done", **result})

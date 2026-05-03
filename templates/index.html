@@ -99,6 +99,21 @@
   .dropzone:hover, .dropzone.over { border-color: var(--azul); background: var(--azul-c); }
   .dropzone.has-file { border-color: var(--verde); background: var(--verde-c); }
   .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  /* Lista de batch */
+  .batch-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--borda); border-radius: 8px; transition: all .2s; }
+  .batch-row.running { border-color: var(--azul); background: var(--azul-c); }
+  .batch-row.done    { border-color: var(--verde);    background: var(--verde-c); }
+  .batch-row.error   { border-color: var(--vermelho); background: var(--vermelho-c); }
+  .batch-row .br-status { font-size: 16px; min-width: 22px; text-align: center; }
+  .batch-row .br-filename { font-size: 13px; font-weight: 600; min-width: 180px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .batch-row .br-estrategia { flex: 1; min-width: 140px; padding: 5px 9px; font-size: 12px; border: 1px solid var(--borda); border-radius: 6px; background: var(--input-bg); color: var(--body-color); }
+  .batch-row .br-result { font-size: 11px; color: var(--cinza); display: flex; align-items: center; gap: 6px; }
+  .batch-row .br-remove { background: transparent; border: none; color: var(--cinza); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .batch-row .br-remove:hover { background: var(--vermelho-c); color: var(--vermelho); }
+  .batch-row.running .br-remove, .batch-row.done .br-remove, .batch-row.error .br-remove { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .br-spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--borda); border-top-color: var(--azul); border-radius: 50%; animation: spin .9s linear infinite; }
   .dz-icon { font-size: 36px; margin-bottom: 8px; }
   .dz-text { font-size: 15px; font-weight: 600; color: var(--crit-label-color); }
   .dz-sub  { font-size: 12px; color: var(--cinza); margin-top: 4px; }
@@ -333,24 +348,21 @@
     <div class="card-body">
       <form id="form-wfa" autocomplete="off">
 
-        <!-- Dropzone -->
+        <!-- Dropzone (aceita múltiplos arquivos) -->
         <div class="dropzone" id="dropzone">
-          <input type="file" id="wfa-input" name="wfa_file" accept=".wfa" required>
+          <input type="file" id="wfa-input" name="wfa_files" accept=".wfa" multiple>
           <div class="dz-icon">📄</div>
-          <div class="dz-text">Arraste o arquivo <code>.wfa</code> aqui</div>
-          <div class="dz-sub">ou clique para selecionar</div>
-          <div class="dz-filename" id="dz-filename"></div>
+          <div class="dz-text">Arraste arquivos <code>.wfa</code> aqui</div>
+          <div class="dz-sub">ou clique para selecionar (suporta múltiplos)</div>
         </div>
 
-        <!-- Nome da estratégia -->
-        <div style="margin-top:16px">
-          <div class="field-group">
-            <label for="f-estrategia">Nome da Estratégia</label>
-            <input type="text" id="f-estrategia" name="estrategia"
-              placeholder="ex: Venus3_EURUSD_H1"
-              style="width:100%">
+        <!-- Lista da fila (um row por arquivo) -->
+        <div id="batch-list" style="display:none;margin-top:16px;">
+          <div style="font-size:12px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">
+            📋 Fila de processamento — <span id="batch-count">0</span> arquivo(s)
           </div>
-          <p class="hint">Usado no nome dos relatórios: <code>Avalia_WFA_[nome]_timestamp</code>. Deixe em branco para usar o nome padrão.</p>
+          <div id="batch-rows" style="display:flex;flex-direction:column;gap:6px;"></div>
+          <p class="hint" style="margin-top:8px;">O nome da estratégia é usado no nome dos relatórios: <code>Avalia_WFA_[estrategia]_timestamp</code>. Padrão: nome do arquivo sem extensão.</p>
         </div>
 
         <!-- Credenciais (colapsável) -->
@@ -525,7 +537,7 @@
 
         <div style="display:flex;align-items:center;gap:16px;margin-top:16px;">
           <button type="submit" class="btn-run" id="btn-run" style="margin-top:0;flex:1">
-            ▶ Iniciar Extração
+            ▶ Iniciar Lote
           </button>
           <label style="font-size:13px;color:var(--cinza);white-space:nowrap;display:flex;align-items:center;gap:6px;">
             Cenários:
@@ -873,17 +885,100 @@ document.getElementById('btn-save-crit').addEventListener('click', () => {
   setTimeout(() => { msg.style.display = 'none'; }, 2500);
 });
 
-// ─── Dropzone ────────────────────────────────────────────────────────────────
-const dropzone  = document.getElementById('dropzone');
-const fileInput = document.getElementById('wfa-input');
-const dzName    = document.getElementById('dz-filename');
-const btnRun    = document.getElementById('btn-run');
+// ─── Dropzone + Fila de Batch ────────────────────────────────────────────────
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('wfa-input');
+const batchList  = document.getElementById('batch-list');
+const batchRows  = document.getElementById('batch-rows');
+const batchCount = document.getElementById('batch-count');
+const btnRun     = document.getElementById('btn-run');
+
+// Estado da fila: [{file, estrategia, status, html_path?, json_path?, error?, veredicto?}, ...]
+let batchFiles = [];
+
+function addFilesToBatch(fileList) {
+  for (const file of fileList) {
+    if (!file.name.toLowerCase().endsWith('.wfa')) continue;
+    // evita duplicatas pelo nome
+    if (batchFiles.some(b => b.file.name === file.name && b.file.size === file.size)) continue;
+    batchFiles.push({
+      file,
+      estrategia: file.name.replace(/\.wfa$/i, ''),
+      status: 'pending',
+    });
+  }
+  renderBatchList();
+}
+
+function removeFromBatch(idx) {
+  batchFiles.splice(idx, 1);
+  renderBatchList();
+}
+
+function renderBatchList() {
+  batchCount.textContent = batchFiles.length;
+  if (batchFiles.length === 0) {
+    batchList.style.display = 'none';
+    dropzone.classList.remove('has-file');
+    return;
+  }
+  batchList.style.display = 'block';
+  dropzone.classList.add('has-file');
+
+  batchRows.innerHTML = '';
+  batchFiles.forEach((b, i) => {
+    const row = document.createElement('div');
+    row.className = `batch-row ${b.status === 'pending' ? '' : b.status}`;
+    row.dataset.idx = i;
+
+    let statusIcon = '⏸';
+    let resultHtml = '<span class="br-result">Pendente</span>';
+    if (b.status === 'running') {
+      statusIcon = '<span class="br-spinner"></span>';
+      resultHtml = '<span class="br-result">Processando...</span>';
+    } else if (b.status === 'done') {
+      statusIcon = '✅';
+      const tom = (b.veredicto && b.veredicto.tom) || 'neutro';
+      const oosCmt = (b.veredicto && b.veredicto.comentario_oos) || '';
+      const tomColor = tom === 'positivo' ? 'var(--verde)' : tom === 'negativo' ? 'var(--vermelho)' : 'var(--amarelo)';
+      resultHtml = `<span class="br-result"><a href="${b.html_path}" target="_blank" style="color:${tomColor};font-weight:600;text-decoration:none;">📊 Relatório</a>${oosCmt ? ` &middot; <span title="${oosCmt.replace(/"/g,'&quot;')}" style="opacity:.8">${oosCmt.length > 60 ? oosCmt.slice(0,60) + '…' : oosCmt}</span>` : ''}</span>`;
+    } else if (b.status === 'error') {
+      statusIcon = '❌';
+      resultHtml = `<span class="br-result" title="${(b.error || '').replace(/"/g,'&quot;')}" style="color:var(--vermelho)">Erro: ${(b.error || '').slice(0, 60)}${(b.error || '').length > 60 ? '…' : ''}</span>`;
+    }
+
+    row.innerHTML = `
+      <span class="br-status">${statusIcon}</span>
+      <span class="br-filename" title="${b.file.name}">${b.file.name}</span>
+      <input type="text" class="br-estrategia" value="${b.estrategia.replace(/"/g, '&quot;')}" placeholder="Nome da estratégia" ${b.status !== 'pending' ? 'disabled' : ''}>
+      ${resultHtml}
+      <button type="button" class="br-remove" title="Remover" onclick="removeFromBatch(${i})">✕</button>
+    `;
+    // Listener para atualizar estratégia ao digitar
+    const input = row.querySelector('.br-estrategia');
+    input.addEventListener('input', () => {
+      batchFiles[i].estrategia = input.value;
+    });
+
+    batchRows.appendChild(row);
+  });
+}
+
+// Atualiza apenas um row do batch (usado pelos eventos SSE)
+function updateBatchRow(idx, patch) {
+  if (idx < 0 || idx >= batchFiles.length) return;
+  Object.assign(batchFiles[idx], patch);
+  renderBatchList();
+}
+
+// Expor removeFromBatch globalmente (usado em onclick inline)
+window.removeFromBatch = removeFromBatch;
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files.length) {
-    dzName.textContent = fileInput.files[0].name;
-    dropzone.classList.add('has-file');
-    btnRun.disabled = false;
+    addFilesToBatch(fileInput.files);
+    // limpa o input para permitir re-selecionar o mesmo arquivo
+    fileInput.value = '';
   }
 });
 
@@ -893,12 +988,8 @@ dropzone.addEventListener('drop', e => {
   e.preventDefault();
   dropzone.classList.remove('over');
   const dt = e.dataTransfer;
-  if (dt.files.length && dt.files[0].name.endsWith('.wfa')) {
-    fileInput.files = dt.files;
-    dzName.textContent = dt.files[0].name;
-    dropzone.classList.add('has-file');
-    btnRun.disabled = false;
-    dropzone.droppedFile = dt.files[0];
+  if (dt.files.length) {
+    addFilesToBatch(dt.files);
   }
 });
 
@@ -1037,9 +1128,17 @@ let totalScenarios = 0;
 let doneScenarios  = 0;
 const scenarioData = {};
 
+// Índice do arquivo atualmente em processamento no lote
+let currentBatchIndex = -1;
+
 // ─── Submit do formulário ─────────────────────────────────────────────────────
 document.getElementById('form-wfa').addEventListener('submit', async e => {
   e.preventDefault();
+
+  if (batchFiles.length === 0) {
+    showError('Selecione ao menos um arquivo .wfa antes de iniciar.');
+    return;
+  }
 
   btnRun.disabled = true;
   btnRun.textContent = '⏳ Enviando...';
@@ -1053,35 +1152,34 @@ document.getElementById('form-wfa').addEventListener('submit', async e => {
   document.getElementById('elapsed-timer').style.display = 'none';
   stopTimer();
   totalScenarios = 0; doneScenarios = 0;
+  currentBatchIndex = -1;
+
+  // reseta status visuais (apenas pending)
+  batchFiles.forEach(b => {
+    b.status = 'pending';
+    delete b.html_path; delete b.json_path; delete b.error; delete b.veredicto;
+  });
+  renderBatchList();
 
   const fd = new FormData();
-  const file = dropzone.droppedFile || fileInput.files[0];
-
-  if (!file) {
-    showError('Selecione um arquivo .wfa antes de iniciar a extração.');
-    btnRun.disabled = false;
-    btnRun.textContent = '▶ Iniciar Extração';
-    return;
-  }
-
-  fd.append('wfa_file',   file);
+  batchFiles.forEach(b => fd.append('wfa_files', b.file));
+  fd.append('estrategias', JSON.stringify(batchFiles.map(b => (b.estrategia || '').trim())));
   fd.append('email',     document.getElementById('f-email').value);
   fd.append('password',  document.getElementById('f-password').value);
-  fd.append('estrategia', document.getElementById('f-estrategia').value.trim());
   fd.append('scoring_config',       JSON.stringify(buildScoringConfig()));
   fd.append('veredicto_thresholds', JSON.stringify(buildThresholds()));
   fd.append('max_cenarios', document.getElementById('max-cenarios').value || '0');
 
   let jobId;
   try {
-    const res = await fetch('/extrair', { method: 'POST', body: fd });
+    const res = await fetch('/extrair-batch', { method: 'POST', body: fd });
     if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
     const data = await res.json();
     jobId = data.job_id;
   } catch (err) {
-    showError('Falha ao enviar arquivo: ' + err.message);
+    showError('Falha ao enviar lote: ' + err.message);
     btnRun.disabled = false;
-    btnRun.textContent = '▶ Iniciar Extração';
+    btnRun.textContent = '▶ Iniciar Lote';
     return;
   }
 
@@ -1099,7 +1197,7 @@ document.getElementById('form-wfa').addEventListener('submit', async e => {
     es.close();
     showError('Conexão interrompida com o servidor.');
     btnRun.disabled = false;
-    btnRun.textContent = '▶ Iniciar Extração';
+    btnRun.textContent = '▶ Iniciar Lote';
   };
 });
 
@@ -1141,13 +1239,60 @@ function handleEvent(msg, es, markFinished) {
     }
   }
 
+  // ─── Eventos de batch ──────────────────────────────────────────────────────
+  if (msg.type === 'batch_start') {
+    log(`📦 Lote iniciado — ${msg.total} arquivo(s)`, 'ok');
+    document.getElementById('progress-title').textContent = `🔄 Processando lote (${msg.total} arquivo${msg.total > 1 ? 's' : ''})`;
+  }
+
+  if (msg.type === 'batch_file_start') {
+    currentBatchIndex = msg.index;
+    updateBatchRow(msg.index, { status: 'running' });
+    // Reseta o painel de progresso de cenários para o novo arquivo
+    document.getElementById('scenarios-live').innerHTML = '';
+    totalScenarios = 0; doneScenarios = 0;
+    updateProgressBar(0, 1);
+    log(`━━━ [${msg.index + 1}/${msg.total}] ${msg.filename} ━━━`, 'ok');
+  }
+
+  if (msg.type === 'batch_file_done') {
+    updateBatchRow(msg.index, {
+      status: 'done',
+      html_path: msg.html_path,
+      json_path: msg.json_path,
+      veredicto: msg.veredicto_global,
+    });
+    log(`✓ Concluído: ${msg.filename}`, 'ok');
+    // Renderiza os resultados deste arquivo na seção de resultados
+    renderResults(msg);
+    document.getElementById('section-results').style.display = 'block';
+  }
+
+  if (msg.type === 'batch_file_error') {
+    updateBatchRow(msg.index, { status: 'error', error: msg.error });
+    log(`❌ Erro em ${msg.filename}: ${msg.error}`, 'err');
+  }
+
+  if (msg.type === 'batch_done') {
+    markFinished();
+    stopTimer();
+    es.close();
+    const totalDone = (msg.results || []).filter(r => r.ok).length;
+    const totalErr  = (msg.results || []).filter(r => !r.ok).length;
+    document.getElementById('progress-title').textContent = `✅ Lote concluído — ${totalDone} sucesso${totalDone !== 1 ? 's' : ''}${totalErr > 0 ? `, ${totalErr} erro${totalErr !== 1 ? 's' : ''}` : ''}`;
+    btnRun.disabled = false;
+    btnRun.textContent = '▶ Novo Lote';
+    log(`📦 Lote finalizado.`, 'ok');
+  }
+
+  // ─── Compatibilidade: evento `done` legado (do /extrair single-file) ───────
   if (msg.type === 'done') {
     markFinished();
     stopTimer();
     es.close();
     renderResults(msg);
     btnRun.disabled = false;
-    btnRun.textContent = '▶ Nova Extração';
+    btnRun.textContent = '▶ Novo Lote';
     document.getElementById('progress-title').textContent = '✅ Concluído';
     updateProgressBar(totalScenarios, totalScenarios);
   }
@@ -1159,7 +1304,7 @@ function handleEvent(msg, es, markFinished) {
     showError(msg.msg || '(sem mensagem)', msg.detail);
     btnRun.disabled = false;
     btnRun.textContent = '▶ Tentar Novamente';
-    document.getElementById('progress-title').textContent = '❌ Erro na Extração';
+    document.getElementById('progress-title').textContent = '❌ Erro';
   }
 }
 
