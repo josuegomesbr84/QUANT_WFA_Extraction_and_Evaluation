@@ -151,11 +151,11 @@
           {% set vc_class = "ATENCAO" if vc == "ATENÇÃO" else vc %}
           <tr>
             <td>{{ c.label }}</td>
-            {% if wfm[loop.index0] is defined %}
-            <td>{{ wfm[loop.index0].in_sample }}</td>
-            <td>{{ wfm[loop.index0].out_of_sample }}</td>
-            <td>{{ wfm[loop.index0].significancia }}</td>
-            <td>{{ wfm[loop.index0].wfe }}</td>
+            {% if c.wfm_row %}
+            <td>{{ c.wfm_row.in_sample }}</td>
+            <td>{{ c.wfm_row.out_of_sample }}</td>
+            <td>{{ c.wfm_row.significancia }}</td>
+            <td>{{ c.wfm_row.wfe }}</td>
             {% else %}
             <td colspan="4" style="color:#aaa">—</td>
             {% endif %}

@@ -14,6 +14,7 @@ from scraper.extractor import (
     extract_oos_equity_steps,
     extract_oos_via_svg_attrs,
     extract_oos_via_hover,
+    find_wfm_row_by_label,
 )
 from analysis.metrics import compute_all_metrics
 from analysis.verdict import calcular_veredicto, veredicto_global
@@ -37,7 +38,9 @@ def _collect_scenario(
 
     # Extrai valores financeiros R$ OOS por step do gráfico de barras
     n_steps = len(scenario_data["tabela_wfa"])
-    wfm_row = wfm[index] if index < len(wfm) else {}
+    # Busca a linha WFM correspondente ao cenário pelo IS/OOS do label
+    # (não usa índice para evitar mismatch quando dropdown ≠ ordem da tabela WFM)
+    wfm_row = find_wfm_row_by_label(label, wfm)
 
     # Tentativa 1: atributos SVG das barras (val, j, seriesIndex) — mais rápido
     oos_equity_steps = extract_oos_via_svg_attrs(page, n_steps)
@@ -92,7 +95,7 @@ def _collect_scenario(
             "max_consecutivos": metrics["consecutivos_negativos"]["max_consecutivos"],
             "representatividade": metrics["representatividade"],
         },
-        "wfm_row": wfm[index] if index < len(wfm) else {},
+        "wfm_row": wfm_row,
     })
 
     return cenario
