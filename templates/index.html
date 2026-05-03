@@ -1208,6 +1208,20 @@ function renderResults(msg) {
   const pctHtml = vg.pct_aprovados != null
     ? `<br><strong>${vg.pct_aprovados}% dos WFCs aprovados</strong>`
     : '';
+  const porOosHtml = (vg.por_oos && vg.por_oos.length)
+    ? `<div style="margin-top:10px;font-size:12px;line-height:2.0;">${
+        vg.por_oos.map(g => {
+          const partes = [];
+          if (g.aprovado)  partes.push(`${g.aprovado} aprovado${g.aprovado > 1 ? 's' : ''}`);
+          if (g.atencao)   partes.push(`${g.atencao} atenção`);
+          if (g.reprovado) partes.push(`${g.reprovado} reprovado${g.reprovado > 1 ? 's' : ''}`);
+          return `<div><strong>OOS ${g.oos}:</strong> ${partes.join(', ')}</div>`;
+        }).join('')
+      }</div>`
+    : '';
+  const comentOosHtml = vg.comentario_oos
+    ? `<div style="margin-top:8px;font-size:12px;font-style:italic;opacity:.9;">💡 ${vg.comentario_oos}</div>`
+    : '';
   const comentHtml = vg.comentario
     ? vg.comentario.split('\n').map(l => `<div style="font-size:12px;opacity:.85;margin-top:3px;">📌 ${l}</div>`).join('')
     : '';
@@ -1220,7 +1234,7 @@ function renderResults(msg) {
       ✅ <strong>${msg.aprovados}</strong> Aprovados &nbsp;|&nbsp;
       ⚠️ <strong>${msg.atencao}</strong> Atenção &nbsp;|&nbsp;
       ❌ <strong>${msg.reprovados}</strong> Reprovados
-      ${pctHtml}${comentHtml}<br>
+      ${pctHtml}${porOosHtml}${comentOosHtml}${comentHtml}<br>
       <span style="font-size:12px;color:var(--cinza)">Arquivo: ${msg.arquivo}</span>
     </div>
     <div class="vg-actions">

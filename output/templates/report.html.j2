@@ -119,6 +119,23 @@
       {% if veredicto_global is mapping and veredicto_global.pct_aprovados is defined %}
       <br><strong>{{ veredicto_global.pct_aprovados }}% dos WFCs aprovados</strong>
       {% endif %}
+      {% if veredicto_global is mapping and veredicto_global.por_oos %}
+      <div style="margin-top:10px;font-size:12px;line-height:2.0;">
+        {% for g in veredicto_global.por_oos %}
+        <div>
+          <strong>OOS {{ g.oos }}:</strong>
+          {% set partes = [] %}
+          {% if g.aprovado > 0 %}{% set _ = partes.append(g.aprovado ~ ' aprovado' ~ ('s' if g.aprovado > 1 else '')) %}{% endif %}
+          {% if g.atencao  > 0 %}{% set _ = partes.append(g.atencao  ~ ' atenção') %}{% endif %}
+          {% if g.reprovado > 0 %}{% set _ = partes.append(g.reprovado ~ ' reprovado' ~ ('s' if g.reprovado > 1 else '')) %}{% endif %}
+          {{ partes | join(', ') }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if veredicto_global is mapping and veredicto_global.comentario_oos %}
+      <div style="margin-top:8px;font-size:12px;font-style:italic;opacity:.9;">💡 {{ veredicto_global.comentario_oos }}</div>
+      {% endif %}
       {% if veredicto_global is mapping and veredicto_global.comentario %}
       <div style="margin-top:8px;font-size:12px;opacity:.85;line-height:1.8;">
         {% for linha in veredicto_global.comentario.split('\n') %}

@@ -159,7 +159,8 @@ def veredicto_global(cenarios: list[dict]) -> dict:
 
     total = len(cenarios)
     if total == 0:
-        return {"veredicto": "REPROVADO", "pct_aprovados": 0, "contagem": contagem, "comentario": ""}
+        return {"veredicto": "REPROVADO", "pct_aprovados": 0, "contagem": contagem,
+                "comentario": "", "por_oos": [], "comentario_oos": ""}
 
     pct_aprovados = round(contagem["APROVADO"] / total * 100)
 
@@ -175,6 +176,8 @@ def veredicto_global(cenarios: list[dict]) -> dict:
         "pct_aprovados": pct_aprovados,
         "contagem": contagem,
         "comentario": _gerar_comentario(cenarios),
+        "por_oos": _gerar_por_oos(cenarios),
+        "comentario_oos": _comentario_oos(cenarios),
     }
 
 
@@ -199,3 +202,43 @@ def _gerar_comentario(cenarios: list[dict]) -> str:
         if contadores[k] > 0
     ]
     return "\n".join(linhas)
+
+
+def _gerar_por_oos(cenarios: list[dict]) -> list[dict]:
+    """Agrupa cenários por período OOS e conta veredictos em cada grupo."""
+    grupos: dict[str, dict] = {}
+    for c in cenarios:
+        oos = str((c.get("wfm_row") or {}).get("out_of_sample", "")).strip()
+        if not oos:
+            continue
+        if oos not in grupos:
+            grupos[oos] = {"oos": oos, "aprovado": 0, "atencao": 0, "reprovado": 0}
+        v = c.get("veredicto", {}).get("veredicto", "REPROVADO")
+        if v == "APROVADO":
+            grupos[oos]["aprovado"] += 1
+        elif v == "ATENÇÃO":
+            grupos[oos]["atencao"] += 1
+        else:
+            grupos[oos]["reprovado"] += 1
+
+    return sorted(grupos.values(), key=lambda x: int(x["oos"]) if x["oos"].isdigit() else 0)
+
+
+def _comentario_oos(cenarios: list[dict]) -> str:
+    """Identifica quais períodos OOS tiveram melhor desempenho."""
+    por_oos = _gerar_por_oos(cenarios)
+    if not por_oos:
+        return ""
+
+    bons = [g["oos"] for g in por_oos if g["aprovado"] > g["reprovado"]]
+    if not bons:
+        return ("Nenhum período OOS apresentou maioria de aprovações. "
+                "Recomenda-se revisar a estratégia antes de operá-la ao vivo.")
+
+    if len(bons) == 1:
+        return f"Sua estratégia parece se adaptar melhor no período OOS {bons[0]}."
+    elif len(bons) == 2:
+        return f"Sua estratégia parece se adaptar melhor nos períodos OOS {bons[0]} e {bons[1]}."
+    else:
+        lista = ", ".join(bons[:-1]) + f" e {bons[-1]}"
+        return f"Sua estratégia parece se adaptar melhor nos períodos OOS {lista}."
