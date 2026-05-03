@@ -198,15 +198,15 @@
   /* ─── Results area ───────────────────────────────────────────────────────── */
   #section-results { display: none; }
 
-  .veredicto-box { border-radius: 12px; padding: 24px 28px; display: flex; align-items: center; gap: 24px; margin-bottom: 20px; }
-  .veredicto-box.APROVADO  { background: var(--verde-c);   border: 2px solid var(--verde-b); }
-  .veredicto-box.ATENCAO   { background: var(--amarelo-c); border: 2px solid var(--amarelo-b); }
-  .veredicto-box.REPROVADO { background: var(--vermelho-c);border: 2px solid var(--vermelho-b); }
-  .vg-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--cinza); }
-  .vg-text  { font-size: 32px; font-weight: 900; letter-spacing: .5px; margin-top: 2px; }
-  .APROVADO  .vg-text { color: var(--verde); }
-  .ATENCAO   .vg-text { color: var(--amarelo); }
-  .REPROVADO .vg-text { color: var(--vermelho); }
+  .veredicto-box { border-radius: 12px; padding: 24px 28px; display: flex; align-items: flex-start; gap: 24px; margin-bottom: 20px; }
+  .veredicto-box.positivo  { background: var(--verde-c);    border: 2px solid var(--verde-b); }
+  .veredicto-box.neutro    { background: var(--amarelo-c);  border: 2px solid var(--amarelo-b); }
+  .veredicto-box.negativo  { background: var(--vermelho-c); border: 2px solid var(--vermelho-b); }
+  .vg-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--cinza); margin-bottom: 6px; }
+  .vg-text  { font-size: 18px; font-weight: 700; line-height: 1.4; }
+  .positivo .vg-text { color: var(--verde); }
+  .neutro   .vg-text { color: var(--amarelo); }
+  .negativo .vg-text { color: var(--vermelho); }
   .vg-counts { font-size: 13px; color: var(--body-color); line-height: 1.8; }
   .vg-actions { margin-left: auto; display: flex; flex-direction: column; gap: 8px; }
   .btn-link { display: inline-flex; align-items: center; gap: 6px; background: #1a1f2e; color: #fff; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: opacity .2s; }
@@ -1198,13 +1198,14 @@ function renderResults(msg) {
   document.getElementById('section-results').style.display = 'block';
   document.getElementById('section-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // veredicto_global agora é um dict com .veredicto, .pct_aprovados, .comentario
+  // veredicto_global é um dict com .tom, .comentario_oos, .por_oos, .pct_aprovados, .comentario
   const vg = (typeof msg.veredicto_global === 'object' && msg.veredicto_global)
     ? msg.veredicto_global
-    : { veredicto: msg.veredicto_global, pct_aprovados: null, comentario: '' };
-  const cls = vcClass(vg.veredicto);
+    : { tom: 'neutro', comentario_oos: '', por_oos: [], pct_aprovados: null, comentario: '' };
+  const tom = vg.tom || 'neutro';
   const vbox = document.getElementById('veredicto-box');
-  vbox.className = `veredicto-box ${cls}`;
+  vbox.className = `veredicto-box ${tom}`;
+  const comentOosText = vg.comentario_oos || 'Análise indisponível.';
   const pctHtml = vg.pct_aprovados != null
     ? `<br><strong>${vg.pct_aprovados}% dos WFCs aprovados</strong>`
     : '';
@@ -1219,22 +1220,19 @@ function renderResults(msg) {
         }).join('')
       }</div>`
     : '';
-  const comentOosHtml = vg.comentario_oos
-    ? `<div style="margin-top:8px;font-size:12px;font-style:italic;opacity:.9;">💡 ${vg.comentario_oos}</div>`
-    : '';
   const comentHtml = vg.comentario
     ? vg.comentario.split('\n').map(l => `<div style="font-size:12px;opacity:.85;margin-top:3px;">📌 ${l}</div>`).join('')
     : '';
   vbox.innerHTML = `
-    <div>
-      <div class="vg-label">Veredicto Global</div>
-      <div class="vg-text">${vg.veredicto}</div>
+    <div style="flex:1">
+      <div class="vg-label">Análise Global</div>
+      <div class="vg-text">${comentOosText}</div>
     </div>
     <div class="vg-counts">
       ✅ <strong>${msg.aprovados}</strong> Aprovados &nbsp;|&nbsp;
       ⚠️ <strong>${msg.atencao}</strong> Atenção &nbsp;|&nbsp;
       ❌ <strong>${msg.reprovados}</strong> Reprovados
-      ${pctHtml}${porOosHtml}${comentOosHtml}${comentHtml}<br>
+      ${pctHtml}${porOosHtml}${comentHtml}<br>
       <span style="font-size:12px;color:var(--cinza)">Arquivo: ${msg.arquivo}</span>
     </div>
     <div class="vg-actions">

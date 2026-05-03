@@ -22,15 +22,16 @@
   .header .meta { font-size: 12px; color: #adb5bd; margin-top: 6px; }
 
   /* Veredicto Global */
-  .veredicto-global { border-radius: 10px; padding: 20px 28px; margin-bottom: 20px; display: flex; align-items: center; gap: 20px; }
-  .veredicto-global.APROVADO { background: var(--verde-claro); border: 2px solid var(--verde-borda); }
-  .veredicto-global.ATENCAO  { background: var(--amarelo-claro); border: 2px solid var(--amarelo-borda); }
-  .veredicto-global.REPROVADO{ background: var(--vermelho-claro); border: 2px solid var(--vermelho-borda); }
-  .veredicto-global .badge-g { font-size: 28px; font-weight: 800; letter-spacing: 1px; }
-  .veredicto-global.APROVADO .badge-g  { color: var(--verde); }
-  .veredicto-global.ATENCAO  .badge-g  { color: var(--amarelo); }
-  .veredicto-global.REPROVADO .badge-g { color: var(--vermelho); }
-  .veredicto-global .sub { font-size: 13px; color: #495057; }
+  .veredicto-global { border-radius: 10px; padding: 22px 28px; margin-bottom: 20px; }
+  .veredicto-global.positivo { background: var(--verde-claro); border: 2px solid var(--verde-borda); }
+  .veredicto-global.neutro   { background: var(--amarelo-claro); border: 2px solid var(--amarelo-borda); }
+  .veredicto-global.negativo { background: var(--vermelho-claro); border: 2px solid var(--vermelho-borda); }
+  .veredicto-global .vg-label { font-size: 11px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .veredicto-global .vg-comment { font-size: 18px; font-weight: 700; line-height: 1.4; }
+  .veredicto-global.positivo .vg-comment { color: var(--verde); }
+  .veredicto-global.neutro   .vg-comment { color: var(--amarelo); }
+  .veredicto-global.negativo .vg-comment { color: var(--vermelho); }
+  .veredicto-global .sub { font-size: 13px; color: #495057; margin-top: 12px; }
 
   /* Seções */
   .section { background: #fff; border-radius: 10px; border: 1px solid var(--borda); margin-bottom: 20px; overflow: hidden; }
@@ -103,13 +104,11 @@
   </div>
 
   <!-- Veredicto Global -->
-  {% set vg_str = veredicto_global.veredicto if veredicto_global is mapping else veredicto_global %}
-  {% set vg_class = "ATENCAO" if vg_str == "ATENÇÃO" else vg_str %}
-  <div class="veredicto-global {{ vg_class }}">
-    <div>
-      <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Veredicto Global</div>
-      <div class="badge-g">{{ vg_str }}</div>
-    </div>
+  {% set vg_tom = (veredicto_global.tom if veredicto_global is mapping else 'neutro') or 'neutro' %}
+  {% set vg_comment = (veredicto_global.comentario_oos if veredicto_global is mapping else '') or 'Análise indisponível.' %}
+  <div class="veredicto-global {{ vg_tom }}">
+    <div class="vg-label">Análise Global</div>
+    <div class="vg-comment">{{ vg_comment }}</div>
     <div class="sub">
       {% set aprovados  = cenarios | selectattr("veredicto.veredicto", "equalto", "APROVADO")  | list | length %}
       {% set atencao    = cenarios | selectattr("veredicto.veredicto", "equalto", "ATENÇÃO")   | list | length %}
@@ -132,9 +131,6 @@
         </div>
         {% endfor %}
       </div>
-      {% endif %}
-      {% if veredicto_global is mapping and veredicto_global.comentario_oos %}
-      <div style="margin-top:8px;font-size:12px;font-style:italic;opacity:.9;">💡 {{ veredicto_global.comentario_oos }}</div>
       {% endif %}
       {% if veredicto_global is mapping and veredicto_global.comentario %}
       <div style="margin-top:8px;font-size:12px;opacity:.85;line-height:1.8;">

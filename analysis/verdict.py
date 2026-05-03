@@ -160,7 +160,7 @@ def veredicto_global(cenarios: list[dict]) -> dict:
     total = len(cenarios)
     if total == 0:
         return {"veredicto": "REPROVADO", "pct_aprovados": 0, "contagem": contagem,
-                "comentario": "", "por_oos": [], "comentario_oos": ""}
+                "comentario": "", "por_oos": [], "comentario_oos": "", "tom": "neutro"}
 
     pct_aprovados = round(contagem["APROVADO"] / total * 100)
 
@@ -171,13 +171,23 @@ def veredicto_global(cenarios: list[dict]) -> dict:
     else:
         veredicto = "ATENÇÃO"
 
+    por_oos = _gerar_por_oos(cenarios)
+    tem_bom_oos = any(g["aprovado"] > g["reprovado"] for g in por_oos)
+    if tem_bom_oos:
+        tom = "positivo"
+    elif por_oos:
+        tom = "negativo"
+    else:
+        tom = "neutro"
+
     return {
         "veredicto": veredicto,
         "pct_aprovados": pct_aprovados,
         "contagem": contagem,
         "comentario": _gerar_comentario(cenarios),
-        "por_oos": _gerar_por_oos(cenarios),
+        "por_oos": por_oos,
         "comentario_oos": _comentario_oos(cenarios),
+        "tom": tom,
     }
 
 
