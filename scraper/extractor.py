@@ -684,6 +684,99 @@ def extract_oos_via_hover(page: Page, n_steps: int) -> list[float]:
     return values if len(values) == n_steps else []
 
 
+def _split_range(text: str) -> tuple[str, str]:
+    """Divide '09/06/2021 - 09/10/2022' em ('09/06/2021', '09/10/2022')."""
+    parts = re.split(r"\s*[-–—]\s*", text.strip())
+    if len(parts) >= 2:
+        return parts[0].strip(), parts[-1].strip()
+    return text.strip(), ""
+
+
+def extract_periodos(page: Page) -> list[dict]:
+    """Clica Mais > Periodos e extrai a tabela de períodos por step.
+
+    Estrutura real (3 colunas; datas como intervalo 'início - fim'):
+        STEP | IN SAMPLE | OUT OF SAMPLE
+    Retorna: {step, is_inicio, is_fim, oos_inicio, oos_fim}
+    """
+    try:
+        mais = page.locator('button:has-text("Mais")').last
+        mais.click()
+        time.sleep(0.5)
+
+        # Item de menu "Periodos" (ancorado p/ não casar com "Período OOS")
+        clicked = False
+        item_re = re.compile(r"^\s*per[ií]odos\s*$", re.IGNORECASE)
+        for loc in page.get_by_text(item_re).all():
+            try:
+                if loc.is_visible():
+                    loc.click()
+                    clicked = True
+                    break
+            except Exception:
+                continue
+        if not clicked:
+            return []
+        time.sleep(1.0)
+
+        # Modal de Periodos identificado pelo conteúdo (IN/OUT SAMPLE)
+        popup_sel = (
+            '[role="dialog"], [class*="modal"], [class*="Modal"], '
+            '[class*="popup"], [class*="Popup"], [class*="dialog"]'
+        )
+        try:
+            page.wait_for_selector(popup_sel, state="visible", timeout=8_000)
+        except Exception:
+            pass
+
+        container = None
+        modais = page.locator(popup_sel)
+        for i in range(modais.count() - 1, -1, -1):
+            m = modais.nth(i)
+            try:
+                if not m.is_visible():
+                    continue
+                txt = m.inner_text().upper()
+                if "IN SAMPLE" in txt and "OUT OF SAMPLE" in txt and m.locator("table").count() > 0:
+                    container = m
+                    break
+            except Exception:
+                continue
+        if container is None:
+            page.keyboard.press("Escape")
+            return []
+
+        table = container.locator("table").first
+        rows = []
+        tr = table.locator("tr")
+        for i in range(tr.count()):
+            cells = tr.nth(i).locator("td")
+            if cells.count() < 3:
+                continue  # pula cabeçalho (th) ou linha incompleta
+            step      = cells.nth(0).inner_text().strip()
+            is_range  = cells.nth(1).inner_text().strip()
+            oos_range = cells.nth(2).inner_text().strip()
+            is_ini,  is_fim  = _split_range(is_range)
+            oos_ini, oos_fim = _split_range(oos_range)
+            rows.append({
+                "step":       step or str(len(rows) + 1),
+                "is_inicio":  is_ini,
+                "is_fim":     is_fim,
+                "oos_inicio": oos_ini,
+                "oos_fim":    oos_fim,
+            })
+
+        page.keyboard.press("Escape")
+        time.sleep(0.5)
+        return rows
+    except Exception:
+        try:
+            page.keyboard.press("Escape")
+        except Exception:
+            pass
+        return []
+
+
 def get_chart_data(page: Page) -> list[dict]:
     """
     Extrai dados dos gráficos ApexCharts via injeção de JavaScript.

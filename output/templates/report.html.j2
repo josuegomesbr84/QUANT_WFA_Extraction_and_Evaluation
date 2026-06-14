@@ -92,7 +92,13 @@
   .scenario-row.open .arrow { transform: rotate(180deg); }
 
   footer { text-align: center; font-size: 11px; color: var(--cinza); margin-top: 24px; padding-bottom: 24px; }
+
+  /* Gráfico Equity OOS */
+  .equity-chart-wrap { margin-top: 18px; }
+  .equity-chart-label { font-size:11px; font-weight:600; color:#6c757d; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; }
+  .equity-chart-canvas { position:relative; height:220px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -222,6 +228,40 @@
             {% for v in c.veredicto.vetos %}
             <span style="display:inline-block;margin:2px 6px;">• {{ veto_labels_full.get(v, v) }}</span>
             {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if c.periodos_ciclos %}
+          <div style="margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:600;color:#6c757d;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">📅 Períodos dos Ciclos IS / OOS</div>
+            <div style="overflow-x:auto">
+            <table class="inner-table">
+              <thead>
+                <tr>
+                  <th rowspan="2">Step</th>
+                  <th colspan="2" style="text-align:center;border-bottom:1px solid #3a4150;">In Sample</th>
+                  <th colspan="2" style="text-align:center;border-bottom:1px solid #3a4150;">Out of Sample</th>
+                </tr>
+                <tr>
+                  <th style="font-size:10px;font-weight:500;opacity:.85;">Início</th>
+                  <th style="font-size:10px;font-weight:500;opacity:.85;">Fim</th>
+                  <th style="font-size:10px;font-weight:500;opacity:.85;">Início</th>
+                  <th style="font-size:10px;font-weight:500;opacity:.85;">Fim</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in c.periodos_ciclos %}
+                <tr>
+                  <td>{{ p.step }}</td>
+                  <td>{{ p.is_inicio }}</td>
+                  <td>{{ p.is_fim }}</td>
+                  <td>{{ p.oos_inicio }}</td>
+                  <td>{{ p.oos_fim }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            </div>
           </div>
           {% endif %}
 
@@ -375,6 +415,17 @@
           </div>
           {% endif %}
 
+          {% if c.oos_equity_steps %}
+          <div class="equity-chart-wrap">
+            <div class="equity-chart-label">Equity OOS Acumulado</div>
+            <div class="equity-chart-canvas">
+              <canvas id="eqchart-{{ c.indice }}"
+                      data-oos="{{ c.oos_equity_steps | tojson | e }}">
+              </canvas>
+            </div>
+          </div>
+          {% endif %}
+
         </div>
       </div>
       {% endfor %}
@@ -388,6 +439,51 @@
   function toggle(idx) {
     var row = document.getElementById('row-' + idx);
     row.classList.toggle('open');
+    if (row.classList.contains('open')) {
+      row.querySelectorAll('canvas[data-oos]').forEach(function(canvas) {
+        var oos = JSON.parse(canvas.getAttribute('data-oos'));
+        canvas.removeAttribute('data-oos');
+        var cum = [], s = 0;
+        oos.forEach(function(v) { s += v; cum.push(s); });
+        var labels = oos.map(function(_, i) { return 'Step ' + (i + 1); });
+        new Chart(canvas, {
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'OOS Individual (R$)',
+                data: oos,
+                backgroundColor: oos.map(function(v) { return v >= 0 ? 'rgba(26,158,92,.65)' : 'rgba(192,57,43,.65)'; }),
+                borderColor:     oos.map(function(v) { return v >= 0 ? '#1a9e5c' : '#c0392b'; }),
+                borderWidth: 1,
+                yAxisID: 'y',
+              },
+              {
+                type: 'line',
+                label: 'Acumulado (R$)',
+                data: cum,
+                borderColor: '#1a1f2e',
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: false,
+                tension: 0.1,
+                yAxisID: 'y',
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+            scales: {
+              y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } },
+              x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            }
+          }
+        });
+      });
+    }
   }
 </script>
 </body>

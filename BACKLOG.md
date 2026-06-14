@@ -267,6 +267,40 @@ Histórico completo de entregas desde o início do projeto.
 
 ---
 
+## 📅 FASE 12 — v1.4.0: Períodos dos Ciclos + Gráfico de Equity OOS (2026-05-08)
+
+> Desenvolvido na branch `feat/periodos-equity-chart` (squash-merge para `main`).
+
+### Períodos dos Ciclos IS/OOS
+
+- ✅ **`scraper/extractor.py`** — nova função `extract_periodos()`: clica "Mais > Periodos", identifica o modal pelo conteúdo (`IN SAMPLE` + `OUT OF SAMPLE`) e lê a tabela de períodos por step
+- ✅ **`scraper/extractor.py`** — helper `_split_range()`: divide o intervalo `"09/06/2021 - 09/10/2022"` em (início, fim)
+- ✅ **Estrutura real da tabela**: 3 colunas (STEP | IN SAMPLE | OUT OF SAMPLE), com datas como intervalo em texto único — separadas em início/fim no parser
+- ✅ **`scraper/runner.py`** — `_collect_scenario()` chama `extract_periodos(page)` para **todos** os cenários; resultado guardado em `periodos_ciclos`; log `✓ Períodos: N ciclos`
+- ✅ **`output/templates/report.html.j2`** — tabela "📅 Períodos dos Ciclos IS / OOS" com cabeçalho agrupado (In Sample / Out of Sample, cada um com Início e Fim)
+
+### Gráfico de Equity OOS
+
+- ✅ **`output/templates/report.html.j2`** — Chart.js 4.4.4 via CDN; gráfico misto por cenário:
+  - Barras: valor OOS individual por step (verde se ≥ 0, vermelho se < 0)
+  - Linha: equity OOS acumulado (soma cumulativa)
+- ✅ **Renderização lazy** — o gráfico só é instanciado quando o painel do cenário é expandido (`toggle()`), evitando canvas com dimensão zero em elementos `display:none`
+- ✅ Reaproveita `c.oos_equity_steps` (já coletado pelo pipeline SVG/Apex/hover existente)
+
+### Iterações de correção (consolidadas no squash)
+
+- 🐛 v1 assumia tabela de 5 colunas separadas → vinha vazia
+- 🐛 Clique de menu casava com "Período OOS" da página → ancorado para `^periodos$` + `is_visible()`
+- ✅ Correção final: 3 colunas + `_split_range()` + modal por conteúdo + iteração `tr` (robusto a tabelas sem `<tbody>`)
+
+### Documentação
+
+- ✅ `CHANGELOG.md` criado (formato Keep a Changelog)
+- ✅ README: changelog v1.4.0
+- ✅ BACKLOG: esta FASE 12
+
+---
+
 ## 📋 PENDENTE / BACKLOG FUTURO
 
 - ⬜ Voltar `headless=True` após confirmar funcionamento da extração de Equity OOS

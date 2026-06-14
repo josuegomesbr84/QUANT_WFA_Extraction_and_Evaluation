@@ -17,6 +17,7 @@ from scraper.extractor import (
     extract_oos_via_svg_attrs,
     extract_oos_via_hover,
     find_wfm_row_by_label,
+    extract_periodos,
 )
 from analysis.metrics import compute_all_metrics
 from analysis.verdict import calcular_veredicto, veredicto_global
@@ -67,6 +68,12 @@ def _collect_scenario(
     metrics = compute_all_metrics(scenario_data, meses_total, oos_equity_steps, wfm_row=wfm_row)
     verdict = calcular_veredicto(metrics, scoring=scoring_config, thresholds=veredicto_thresholds)
 
+    periodos_ciclos = extract_periodos(page)
+    if periodos_ciclos:
+        push({"type": "log", "msg": f"[{label}] ✓ Períodos: {len(periodos_ciclos)} ciclos"})
+    else:
+        push({"type": "log", "msg": f"[{label}] ⚠ Períodos não encontrados"})
+
     cenario = {
         "indice": index,
         "label": label,
@@ -79,6 +86,7 @@ def _collect_scenario(
         "metrics": metrics,
         "veredicto": verdict,
         "wfm_row": wfm_row,
+        "periodos_ciclos": periodos_ciclos,
     }
 
     push({

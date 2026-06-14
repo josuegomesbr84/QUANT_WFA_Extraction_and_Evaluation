@@ -6,6 +6,12 @@
 
 ## Changelog
 
+### v1.4.0 — 2026-05-08
+- **Períodos dos ciclos IS/OOS** — cada cenário agora exibe a tabela de datas de início/fim de cada step, coletada via menu "Mais > Periodos" do BotSpot (mesmo caminho da Distribuição/Z-Score)
+- **Gráfico de Equity OOS** — no detalhe expansível de cada cenário, gráfico misto (Chart.js): barras com o valor OOS individual por step (verde/vermelho por sinal) + linha do equity OOS acumulado; renderização lazy ao expandir o painel
+- `scraper/extractor.py` — nova função `extract_periodos()` e helper `_split_range()`; o modal de Periodos é identificado pelo conteúdo (IN SAMPLE + OUT OF SAMPLE) para não capturar o modal de Distribuição residual
+- `output/templates/report.html.j2` — tabela "📅 Períodos dos Ciclos IS / OOS" (5 colunas: Step + Início/Fim de IS e OOS) e canvas do gráfico de equity
+
 ### v1.3.0 — 2026-05-03
 - **Enfileirador de WFAs (batch)** — selecione múltiplos arquivos `.wfa` e o sistema processa em sequência reaproveitando o mesmo browser/login (ganho ~30s por arquivo)
 - **Lista visual da fila** — cada arquivo aparece com badge de status (⏸/🔄/✅/❌) e input editável para o nome da estratégia
